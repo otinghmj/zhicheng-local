@@ -1,0 +1,57 @@
+.scan-page { padding-top: var(--co-section-gap); }
+.scan-cdp-alert { margin-bottom: 16px; }
+.scan-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: var(--co-section-gap); }
+.scan-head h1 { margin: 0; color: var(--co-text-1); font-size: var(--co-fs-page-title); }
+.scan-head p { margin: 0; color: var(--co-text-3); }
+.scan-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--co-grid-gap); align-items: start; margin-top: var(--co-section-gap); }
+.scan-stack { display: flex; min-width: 0; flex-direction: column; gap: var(--co-section-gap); }
+.scan-overview { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(230px, 1fr) minmax(230px, 1fr); gap: var(--co-grid-gap); align-items: stretch; }
+.scan-card { min-width: 0; border-color: var(--co-border-card); box-shadow: var(--co-shadow-card); }
+.scan-count { display: grid; min-width: 18px; height: 18px; place-items: center; border-radius: 50%; background: var(--co-primary-soft); color: var(--co-primary); font-size: 11px; font-weight: 700; }
+.scan-running-card .common-empty { min-height: 170px; justify-content: center; }
+.scan-runner-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.scan-runner { padding: 12px; border: 1px solid var(--co-border-control); border-radius: var(--co-radius-control); background: var(--co-bg-subtle); }
+.scan-runner__head, .scan-runner__meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.scan-runner__head strong { overflow: hidden; flex: 1; color: var(--co-text-1); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.scan-runner__meta { color: var(--co-text-3); font-size: var(--co-fs-sub); }
+.scan-kv { display: flex; flex-direction: column; }
+.scan-kv > div { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--co-divider); color: var(--co-text-3); font-size: 13px; }
+.scan-kv > div:last-child { border-bottom: 0; }
+.scan-kv strong { color: var(--co-text-1); }
+.scan-kv .is-primary { color: var(--co-primary); }
+.scan-kv .is-success { color: var(--co-success); }
+.scan-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) 140px 140px 240px; gap: 8px; margin-bottom: 12px; }
+.scan-history-progress > span { display: block; margin-bottom: 3px; color: var(--co-text-3); font-size: var(--co-fs-sub); }
+.scan-history-progress .ant-progress { margin: 0; }
+.scan-cli-preview { display: flex; flex-direction: column; gap: 6px; margin: -4px 0 16px; padding: 10px; border-radius: var(--co-radius-control); background: var(--co-bg-subtle); color: var(--co-text-3); font-size: var(--co-fs-sub); }
+.scan-cli-preview strong { color: var(--co-text-2); }
+.scan-cli-preview code { overflow-wrap: anywhere; color: var(--co-info); font-family: var(--co-font-mono); white-space: pre-wrap; }
+.scan-page .ant-input-number { width: 100%; }
+.scan-quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.scan-quick-grid > span { display: block; }
+.scan-quick-grid button { width: 100%; height: 58px; white-space: normal; }
+.scan-quick-grid .anticon { color: var(--co-primary); }
+.scan-notes { padding: 2px 0; }
+.scan-notes p { position: relative; margin: 0; padding: 8px 0 8px 16px; border-bottom: 1px solid var(--co-divider); color: var(--co-text-3); font-size: var(--co-fs-sub); line-height: 1.6; }
+.scan-notes p:last-child { border-bottom: 0; }
+.scan-notes p::before { position: absolute; top: 15px; left: 2px; width: 5px; height: 5px; border-radius: 50%; background: var(--co-primary); content: ""; }
+
+@media (max-width: 1050px) {
+  .scan-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 1100px) {
+  .scan-overview { grid-template-columns: 1fr 1fr; }
+  .scan-running-card { grid-column: 1 / -1; }
+  .scan-toolbar { grid-template-columns: 1fr 1fr; }
+}
+.scan-ai-desc { margin: 0 0 12px; color: var(--co-text-3); font-size: 13px; }
+.scan-ai-progress { display: flex; flex-direction: column; gap: 8px; }
+.scan-ai-progress > span { color: var(--co-text-2); font-size: 13px; }
+.scan-portals-overview { display: flex; flex-direction: column; gap: 0; }
+.scan-tag-list { display: flex; flex-wrap: wrap; gap: 4px; }
+
+@media (max-width: 720px) {
+  .scan-head { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .scan-overview, .scan-runner-grid, .scan-toolbar { grid-template-columns: 1fr; }
+  .scan-running-card { grid-column: auto; }
+}

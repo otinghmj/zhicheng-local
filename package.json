@@ -1,0 +1,27 @@
+{
+  "name": "career-ops-local",
+  "version": "1.0.0",
+  "description": "Local-first AI job search toolkit for Career-Ops China",
+  "scripts": {
+    "pdf": "node generate-pdf.mjs",
+    "boss:api": "node scrapers/shared/api-server.mjs",
+    "51job:opencli": "node scrapers/51job/51job-opencli.mjs",
+    "dev:server": "npm --prefix web/server run dev",
+    "dev:client": "npm --prefix web/client run dev",
+    "dev": "concurrently -n server,client -c blue,green \"npm run dev:server\" \"npm run dev:client\""
+  },
+  "keywords": ["ai", "job-search", "claude-code", "career", "automation"],
+  "author": "",
+  "homepage": "",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.58.1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

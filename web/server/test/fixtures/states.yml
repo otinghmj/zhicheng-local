@@ -1,0 +1,7 @@
+states:
+  - id: evaluated
+    label: Evaluated
+    aliases: [evaluada]
+  - id: applied
+    label: Applied
+    aliases: [aplicado, sent]

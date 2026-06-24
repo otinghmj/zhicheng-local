@@ -1,0 +1,22 @@
+.brand-mark {
+  display: block;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+}
+
+.brand-mark__frame {
+  stroke: #344054;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.brand-mark__accent {
+  fill: var(--co-primary, #f97316);
+}
+
+.brand-mark--large {
+  width: 58px;
+  height: 58px;
+}

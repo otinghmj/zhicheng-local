@@ -1,0 +1,34 @@
+/* Career-Ops 设计令牌 — 间距 / 圆角 / 阴影 / 布局 */
+:root {
+  /* ── 间距阶梯（4 基数） ───────────────── */
+  --co-sp-1: 4px;
+  --co-sp-2: 8px;
+  --co-sp-3: 12px;
+  --co-sp-4: 16px;
+  --co-sp-5: 20px;
+  --co-sp-6: 24px;
+  --co-sp-8: 32px;
+
+  /* ── 圆角 ───────────────────────────── */
+  --co-radius-card: 11px;     /* 卡片（手册基准） */
+  --co-radius-control: 8px;   /* 按钮 / 输入框 */
+  --co-radius-sm: 6px;        /* 标签 / 小元素 */
+  --co-radius-pill: 999px;    /* 胶囊 */
+
+  /* ── 阴影 ───────────────────────────── */
+  --co-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --co-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --co-shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  /* ── 全局布局（统一后） ──────────────── */
+  --co-nav-height: 64px;        /* 原 79 / 52 → 统一 64 */
+  --co-content-max: 1480px;     /* 内容区最大宽度 */
+  --co-page-pad-x: 28px;        /* 页面左右边距 */
+  --co-card-pad: 20px;          /* 卡片内边距 */
+  --co-grid-gap: 20px;          /* 卡片栅格间距（原 19/21/13 → 统一 20） */
+  --co-section-gap: 20px;       /* 区块纵向间距 */
+
+  /* ── 动效 ───────────────────────────── */
+  --co-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --co-dur: 0.15s;
+}

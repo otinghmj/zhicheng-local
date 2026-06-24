@@ -1,0 +1,25 @@
+/* Career-Ops 设计令牌 — 字体 */
+:root {
+  --co-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
+  --co-font-mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  /* 字号阶梯（统一后仅保留 6 档） */
+  --co-fs-page-title: 24px;   /* 页面大标题 */
+  --co-fs-stat: 28px;         /* 统计大数字 */
+  --co-fs-card-title: 16px;   /* 卡片标题 */
+  --co-fs-body: 14px;         /* 正文 / 表格内容 */
+  --co-fs-sub: 12px;          /* 次要说明 / 表头 / 标签 */
+  --co-fs-mini: 11px;         /* 角标 / 极小注释 */
+
+  --co-fw-regular: 400;
+  --co-fw-medium: 500;
+  --co-fw-semibold: 600;
+  --co-fw-bold: 700;
+
+  --co-lh-tight: 1.2;
+  --co-lh-body: 1.55;
+
+  /* 数字使用等宽数字特性，保证表格对齐 */
+  --co-font-numeric: "tnum" 1;
+}

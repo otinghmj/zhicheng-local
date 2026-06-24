@@ -1,0 +1,135 @@
+.pipeline-page { padding-top: var(--co-section-gap); }
+
+.pipeline-head {
+  display: flex;
+  align-items: center;
+  gap: var(--co-grid-gap);
+  margin-bottom: var(--co-section-gap);
+}
+
+.pipeline-title { flex-shrink: 0; }
+.pipeline-title h1 { margin: 0 0 4px; color: var(--co-text-1); font-size: var(--co-fs-page-title); }
+.pipeline-title p { margin: 0; color: var(--co-text-3); }
+
+.pipeline-stat-card {
+  min-width: 570px;
+  margin-left: auto;
+  border-color: var(--co-border-card);
+  box-shadow: var(--co-shadow-card);
+}
+
+.pipeline-stat-card .ant-card-body { padding: 14px 20px; }
+.pipeline-stat-card .common-stat-strip__item:last-child { min-width: 155px; }
+.pipeline-stat-card .common-stat-strip__item:last-child .common-stat-strip__value { font-size: 14px; line-height: 26px; }
+
+.pipeline-alert { margin-bottom: var(--co-section-gap); }
+
+.pipeline-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: var(--co-grid-gap);
+  align-items: start;
+}
+
+.pipeline-stack {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--co-section-gap);
+}
+
+.pipeline-table-card {
+  min-width: 0;
+  border-color: var(--co-border-card);
+  box-shadow: var(--co-shadow-card);
+}
+
+.pipeline-table-card .ant-card-body { padding: 14px 0 0; }
+.pipeline-table-card .ant-tabs-nav,
+.pipeline-toolbar { margin-right: var(--co-card-pad); margin-left: var(--co-card-pad); }
+.pipeline-table-card .ant-table-cell:first-child { padding-left: var(--co-card-pad); }
+.pipeline-table-card .ant-pagination { margin-right: var(--co-card-pad); }
+
+.pipeline-tab-count {
+  padding: 1px 6px;
+  border-radius: var(--co-radius-pill);
+  background: var(--co-bg-hover);
+  color: var(--co-text-3);
+  font-size: 11px;
+}
+
+.pipeline-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.pipeline-toolbar .ant-input-affix-wrapper { width: 260px; }
+.pipeline-toolbar .ant-select { width: 135px; }
+.pipeline-toolbar > span:last-child { margin-left: auto; color: var(--co-text-3); font-size: var(--co-fs-sub); }
+
+.pipeline-notes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--co-grid-gap);
+}
+
+.pipeline-notes .ant-card-head {
+  min-height: 42px;
+  border-bottom: 0;
+  font-size: 14px;
+}
+
+.pipeline-notes .ant-card-body { padding-top: 4px; }
+.pipeline-notes ul { margin: 0; padding-left: 18px; color: var(--co-text-3); font-size: var(--co-fs-sub); line-height: 1.8; }
+
+.pipeline-kv {
+  display: flex;
+  flex-direction: column;
+}
+
+.pipeline-kv > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--co-divider);
+  color: var(--co-text-3);
+  font-size: 13px;
+}
+
+.pipeline-kv > div:last-child { border-bottom: 0; }
+.pipeline-kv strong { color: var(--co-text-1); }
+.pipeline-kv .pipeline-primary { color: var(--co-primary); }
+
+.pipeline-batch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pipeline-batch > span,
+.pipeline-operations > span { display: block; }
+.pipeline-batch button { width: 100%; }
+
+.pipeline-operations {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pipeline-score-breakdown { display: flex; flex-direction: column; gap: 12px; }
+.pipeline-score-dim__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 13px; }
+.pipeline-score-dim__header strong { color: var(--co-primary); }
+.pipeline-score-dim__bar { height: 6px; border-radius: 3px; background: var(--co-bg-3, #f0f0f0); overflow: hidden; }
+.pipeline-score-dim__bar > div { height: 100%; border-radius: 3px; background: var(--co-primary); transition: width 0.3s; }
+.pipeline-score-dim__label { display: block; margin-top: 2px; color: var(--co-text-3); font-size: 12px; }
+.pipeline-score-note { margin: 12px 0 0; color: var(--co-text-3); font-size: 12px; line-height: 1.6; }
+.pipeline-detail-actions { display: flex; gap: 8px; margin-top: 16px; }
+
+@media (max-width: 1280px) {
+  .pipeline-head { align-items: flex-start; flex-wrap: wrap; }
+  .pipeline-stat-card { min-width: min(100%, 570px); margin-left: 0; }
+  .pipeline-layout { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,50 @@
+# Runtime generated
+data/*
+!data/.gitkeep
+reports/*
+!reports/.gitkeep
+interview-prep/*
+!interview-prep/.gitkeep
+output/*
+!output/.gitkeep
+batch/logs/*
+!batch/logs/.gitkeep
+batch/batch-state.tsv
+batch/batch-input.tsv
+batch/tracker-additions/*.tsv
+!batch/tracker-additions/.gitkeep
+jds/*
+!jds/.gitkeep
+
+# Generated
+.resolved-prompt-*
+node_modules/
+
+# Update lock
+.update-dismissed
+.update-lock
+
+# OS
+.DS_Store
+*.mov
+*.mp4
+
+# Claude Code local
+.claude/settings.local.json
+.claude/memory/
+.claude/launch.json
+career-dashboard
+/package-lock.json
+
+# Product branch — generated / large
+videos/
+.playwright-cli/
+data/career-ops.db
+
+# User data (never commit to product branch)
+cv.md
+config/profile.yml
+modes/_profile.md
+portals.yml
+article-digest.md
+.career-ops-agent

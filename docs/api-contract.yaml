@@ -1,0 +1,1918 @@
+openapi: '3.0.3'
+# FROZEN: 2026-06-11
+info:
+  title: Career-Ops Local Web API
+  version: '1.2'
+  description: |
+    Career-Ops Local 可视化层的 RESTful API 契约。
+    本仓库是本地模式独立版，不包含云端登录、JWT、公共职位库或服务端多用户数据库。
+    后端读写现有 Markdown/YAML/TSV 文件系统，不引入数据库。
+    所有写操作使用文件级排他锁防止竞态。
+  contact:
+    name: Career-Ops
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3200
+    description: 本地开发
+
+components:
+
+  # ─── 通用 Schemas ─────────────────────────────────────────────────────────
+
+  schemas:
+
+    Error:
+      type: object
+      required: [error, code]
+      properties:
+        error:
+          type: string
+          description: 人类可读错误信息
+        code:
+          type: string
+          description: 机器可识别错误码
+          enum:
+            - UNAUTHORIZED
+            - FORBIDDEN
+            - NOT_FOUND
+            - CONFLICT
+            - VALIDATION_ERROR
+            - PARSE_ERROR
+            - SCRIPT_ERROR
+            - SCRIPT_TIMEOUT
+            - SCRIPT_RUNNING
+            - INTERNAL_ERROR
+        details:
+          type: object
+          description: 可选的额外上下文
+
+    ApplicationStatus:
+      type: string
+      enum:
+        - Evaluated
+        - Applied
+        - Responded
+        - Interview
+        - Offer
+        - Rejected
+        - Discarded
+        - SKIP
+
+    Application:
+      type: object
+      required: [num, date, company, role, status, pdfGenerated]
+      properties:
+        num:
+          type: integer
+          description: 3 位零填充编号
+          example: 1
+        date:
+          type: string
+          format: date
+          example: '2026-04-01'
+        company:
+          type: string
+          example: Anthropic
+        role:
+          type: string
+          example: AI Engineer
+        score:
+          type: number
+          nullable: true
+          minimum: 1.0
+          maximum: 5.0
+          example: 4.5
+        scoreRaw:
+          type: string
+          example: '4.5/5'
+        status:
+          $ref: '#/components/schemas/ApplicationStatus'
+        pdfGenerated:
+          type: boolean
+        reportPath:
+          type: string
+          nullable: true
+          description: 相对路径
+          example: reports/001-anthropic-2026-04-01.md
+        reportNumber:
+          type: string
+          example: '001'
+        notes:
+          type: string
+          example: Strong match
+        jobUrl:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+          description: 路由层优先使用 Pipeline URL，关联不到时使用报告 URL；均无值时为 null
+        platform:
+          type: string
+          nullable: true
+          readOnly: true
+          enum: [BOSS, 猎聘, 智联, 前程无忧, 其他]
+          description: 路由层根据关联的 Pipeline 或报告 URL 推断的只读来源平台
+        salary:
+          type: string
+          nullable: true
+          readOnly: true
+          description: 路由层按 reportPath/jobUrl join 得到的只读派生字段；join 不到时为 null
+        city:
+          type: string
+          nullable: true
+          readOnly: true
+          description: 路由层按 reportPath/jobUrl join 得到的只读派生字段；join 不到时为 null
+        direction:
+          type: string
+          nullable: true
+          readOnly: true
+          description: 路由层按 reportPath/jobUrl join 得到的只读派生字段；join 不到时为 null
+
+    ApplicationUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        status:
+          $ref: '#/components/schemas/ApplicationStatus'
+        notes:
+          type: string
+
+    ApplicationCreate:
+      type: object
+      required: [date, company, role, status]
+      additionalProperties: false
+      properties:
+        date:
+          type: string
+          format: date
+        company:
+          type: string
+        role:
+          type: string
+        score:
+          type: number
+          nullable: true
+          minimum: 1.0
+          maximum: 5.0
+        status:
+          $ref: '#/components/schemas/ApplicationStatus'
+        pdfGenerated:
+          type: boolean
+          default: false
+        reportPath:
+          type: string
+          nullable: true
+        notes:
+          type: string
+        jobUrl:
+          type: string
+          format: uri
+          nullable: true
+
+    DashboardMetrics:
+      type: object
+      properties:
+        total:
+          type: integer
+        byStatus:
+          type: object
+          additionalProperties:
+            type: integer
+        avgScore:
+          type: number
+        topScore:
+          type: number
+        withPdf:
+          type: integer
+        actionable:
+          type: integer
+        recentTrend:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              count:
+                type: integer
+              avgScore:
+                type: number
+        archetypeDistribution:
+          type: object
+          additionalProperties:
+            type: integer
+
+    PipelineItem:
+      oneOf:
+        - $ref: '#/components/schemas/PipelineParsedItem'
+        - $ref: '#/components/schemas/PipelineParseError'
+
+    PipelineParsedItem:
+      type: object
+      required: [ok, url, company, role, salary, city, experience, education, industry, companySize, preFilterScore, platform, processed]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+        url:
+          type: string
+          format: uri
+        company:
+          type: string
+        role:
+          type: string
+        salary:
+          type: string
+        city:
+          type: string
+        experience:
+          type: string
+        education:
+          type: string
+        industry:
+          type: string
+        companySize:
+          type: string
+        preFilterScore:
+          type: number
+          minimum: 0
+          maximum: 5
+        platform:
+          type: string
+          readOnly: true
+          enum: [BOSS, 猎聘, 智联, 前程无忧, 其他]
+          description: URL 域名推断；zhipin→BOSS、liepin→猎聘、zhaopin→智联、51job→前程无忧
+        processed:
+          type: boolean
+        reportNum:
+          type: integer
+        score:
+          type: number
+        pdfGenerated:
+          type: boolean
+
+    PipelineParseError:
+      type: object
+      required: [ok, raw, line]
+      properties:
+        ok:
+          type: boolean
+          enum: [false]
+        raw:
+          type: string
+          description: 无法解析的原始 Markdown 行
+        line:
+          type: integer
+          minimum: 1
+          description: 原始文件中的 1-based 行号
+
+    PipelineAddUrl:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+          description: 待评估的职位 URL
+        company:
+          type: string
+        role:
+          type: string
+
+    PipelinePatch:
+      type: object
+      additionalProperties: false
+      properties:
+        remove:
+          type: array
+          uniqueItems: true
+          description: 需要移除并追写 scan-history.tsv 的 URL
+          items:
+            type: string
+            format: uri
+        updates:
+          type: array
+          description: 需要勾选或取消勾选的 Pipeline URL
+          items:
+            type: object
+            required: [url, processed]
+            additionalProperties: false
+            properties:
+              url:
+                type: string
+                format: uri
+              processed:
+                type: boolean
+
+    EvaluationReportSummary:
+      type: object
+      properties:
+        num:
+          type: integer
+        company:
+          type: string
+        role:
+          type: string
+        date:
+          type: string
+          format: date
+        archetype:
+          type: string
+        score:
+          type: number
+        url:
+          type: string
+          format: uri
+        pdfPath:
+          type: string
+        tldr:
+          type: string
+        remote:
+          type: string
+        compEstimate:
+          type: string
+        city:
+          type: string
+          nullable: true
+        salary:
+          type: string
+          nullable: true
+        postedDate:
+          type: string
+          format: date
+          nullable: true
+        trackerStatus:
+          allOf:
+            - $ref: '#/components/schemas/ApplicationStatus'
+          nullable: true
+        pdfExists:
+          type: boolean
+          nullable: true
+
+    EvaluationReportDetail:
+      type: object
+      properties:
+        num:
+          type: integer
+        company:
+          type: string
+        role:
+          type: string
+        date:
+          type: string
+          format: date
+        archetype:
+          type: string
+        score:
+          type: number
+        url:
+          type: string
+          format: uri
+        pdfPath:
+          type: string
+        sections:
+          type: object
+          properties:
+            A:
+              $ref: '#/components/schemas/ReportSection'
+            B:
+              $ref: '#/components/schemas/ReportSection'
+            C:
+              $ref: '#/components/schemas/ReportSection'
+            D:
+              $ref: '#/components/schemas/ReportSection'
+            E:
+              $ref: '#/components/schemas/ReportSection'
+            overall:
+              $ref: '#/components/schemas/ReportSection'
+            nextSteps:
+              $ref: '#/components/schemas/ReportSection'
+        dimensions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScoreDimension'
+
+    ReportSection:
+      type: object
+      properties:
+        title:
+          type: string
+        markdown:
+          type: string
+          description: 原始 Markdown 内容
+
+    ScoreDimension:
+      type: object
+      properties:
+        name:
+          type: string
+        score:
+          type: number
+          minimum: 1
+          maximum: 5
+        weight:
+          type: number
+
+    UserProfile:
+      type: object
+      properties:
+        candidate:
+          type: object
+          properties:
+            full_name:
+              type: string
+            email:
+              type: string
+              format: email
+            phone:
+              type: string
+            location:
+              type: string
+            linkedin:
+              type: string
+            portfolio_url:
+              type: string
+              format: uri
+            github:
+              type: string
+        target_roles:
+          type: object
+          properties:
+            primary:
+              type: array
+              items:
+                type: string
+            archetypes:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  level:
+                    type: string
+                  fit:
+                    type: string
+                    enum: [primary, secondary, adjacent]
+        narrative:
+          type: object
+          properties:
+            headline:
+              type: string
+            exit_story:
+              type: string
+            superpowers:
+              type: array
+              items:
+                type: string
+            proof_points:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  url:
+                    type: string
+                    format: uri
+                  hero_metric:
+                    type: string
+        compensation:
+          type: object
+          properties:
+            target_range:
+              type: string
+            currency:
+              type: string
+            minimum:
+              type: string
+        location:
+          type: object
+          properties:
+            country:
+              type: string
+            city:
+              type: string
+            timezone:
+              type: string
+            visa_status:
+              type: string
+
+    PortalConfig:
+      type: object
+      properties:
+        title_filter:
+          type: object
+          properties:
+            positive:
+              type: array
+              items:
+                type: string
+            negative:
+              type: array
+              items:
+                type: string
+            seniority_boost:
+              type: array
+              items:
+                type: string
+        tracked_companies:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              careers_url:
+                type: string
+                format: uri
+              enabled:
+                type: boolean
+        search_queries:
+          type: object
+          properties:
+            boss:
+              type: array
+              items:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  city:
+                    type: string
+            zhaopin:
+              type: array
+              items:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  city:
+                    type: string
+
+    MarkdownFile:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          description: 完整 Markdown 文本
+        lastModified:
+          type: string
+          format: date-time
+
+    ScanHistoryEntry:
+      type: object
+      required: [url, firstSeen, portal, title, company, status]
+      properties:
+        url:
+          type: string
+          format: uri
+        firstSeen:
+          type: string
+          format: date
+        portal:
+          type: string
+        title:
+          type: string
+        company:
+          type: string
+        status:
+          type: string
+          description: scan-history.tsv 中的原始状态；added 表示写入 Pipeline，skipped_* 表示跳过
+
+    ScanHistoryDailyAggregate:
+      type: object
+      required: [date, portal, added, skipped]
+      properties:
+        date:
+          type: string
+          format: date
+        portal:
+          type: string
+        added:
+          type: integer
+          minimum: 0
+          description: 当日该 portal 下 status=added 的记录数
+        skipped:
+          type: integer
+          minimum: 0
+          description: 当日该 portal 下 status 以 skipped_ 开头的记录数
+
+    BatchJob:
+      type: object
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+          format: uri
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        reportNum:
+          type: string
+        score:
+          type: string
+        error:
+          type: string
+
+    ScriptExecution:
+      type: object
+      properties:
+        jobId:
+          type: string
+          format: uuid
+          description: 异步任务 ID（可通过 SSE 追踪进度）
+        script:
+          type: string
+        status:
+          type: string
+          enum: [started, completed, failed, canceled]
+        stdout:
+          type: string
+        stderr:
+          type: string
+        exitCode:
+          type: integer
+          nullable: true
+        progress:
+          allOf:
+            - $ref: '#/components/schemas/ScriptProgress'
+          nullable: true
+          description: 从 stdout 的 `##PROGRESS {json}` 行解析；尚无合法进度行时为 null
+        logTail:
+          type: string
+          description: 排除 ##PROGRESS 行后的最近日志尾部
+
+    ScriptProgress:
+      type: object
+      required: [step, current, total]
+      properties:
+        step:
+          type: string
+        current:
+          type: integer
+          minimum: 0
+        total:
+          type: integer
+          minimum: 0
+        found:
+          type: integer
+          minimum: 0
+
+    AiTaskRequest:
+      type: object
+      required: [mode, target]
+      additionalProperties: false
+      properties:
+        mode:
+          type: string
+          description: modes/ 下允许执行的真实模式文件名（不含 .md）
+          enum:
+            - apply
+            - auto-pipeline
+            - batch
+            - contacto
+            - cv-deep-dive
+            - deep
+            - deep-prep-glossary
+            - deep-prep-immersion
+            - deep-prep-portfolio
+            - deep-prep-roleplay
+            - deep-prep-simulate
+            - interview-prep
+            - oferta
+            - ofertas
+            - pdf
+            - pipeline
+            - pre-filter
+            - project
+            - scan
+            - tracker
+            - training
+        target:
+          type: string
+          minLength: 1
+          description: 报告编号或 URL
+          example: '1247'
+        args:
+          type: object
+          additionalProperties: true
+          description: 传递给所选 mode 的可选命名参数
+
+    AiTaskAccepted:
+      type: object
+      required: [jobId]
+      properties:
+        jobId:
+          type: string
+          format: uuid
+          description: 复用 GET /api/scripts/{jobId}/status 和 GET /api/events 跟踪
+
+    StoryBankStory:
+      type: object
+      required: [id, title, themes, source, situation, task, action, result, reflection, suitableFor]
+      properties:
+        id:
+          type: string
+          description: 由故事标题生成的稳定标识
+        title:
+          type: string
+        themes:
+          type: array
+          description: 标题方括号中的主题标签
+          items:
+            type: string
+        source:
+          type: string
+        situation:
+          type: string
+          description: STAR+R 的 S（背景）
+        task:
+          type: string
+          description: STAR+R 的 T（任务）
+        action:
+          type: string
+          description: STAR+R 的 A（行动）
+        result:
+          type: string
+          description: STAR+R 的 R（结果）
+        reflection:
+          type: string
+          description: STAR+R 的 Reflection（反思）
+        suitableFor:
+          type: array
+          items:
+            type: string
+
+    StoryBankStoryCreate:
+      type: object
+      required: [title, themes, source, situation, task, action, result]
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+        themes:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        source:
+          type: string
+        situation:
+          type: string
+        task:
+          type: string
+        action:
+          type: string
+        result:
+          type: string
+        reflection:
+          type: string
+        suitableFor:
+          type: array
+          items:
+            type: string
+
+    TaskHistoryEntry:
+      type: object
+      required: [taskId, script, args, started]
+      properties:
+        taskId:
+          type: string
+        script:
+          type: string
+        args:
+          type: string
+          description: data/task-history.tsv 中保存的命令参数文本
+        started:
+          type: string
+          format: date-time
+        ended:
+          type: string
+          format: date-time
+          nullable: true
+        exitCode:
+          type: integer
+          nullable: true
+        found:
+          type: integer
+          nullable: true
+        dedupRate:
+          type: number
+          nullable: true
+
+    ActivityLogEntry:
+      type: object
+      required: [ts, type, summary]
+      properties:
+        ts:
+          type: string
+          format: date-time
+        type:
+          type: string
+        summary:
+          type: string
+
+    MetricsHistoryEntry:
+      type: object
+      required: [date, scanned, pending, processed, applied, interview, offers]
+      properties:
+        date:
+          type: string
+          format: date
+        scanned:
+          type: integer
+        pending:
+          type: integer
+        processed:
+          type: integer
+        applied:
+          type: integer
+        interview:
+          type: integer
+        offers:
+          type: integer
+
+    PdfFile:
+      type: object
+      required: [filename, size, mtime]
+      properties:
+        filename:
+          type: string
+        size:
+          type: integer
+          minimum: 0
+          description: 文件大小，单位 byte
+        mtime:
+          type: string
+          format: date-time
+        company:
+          type: string
+          nullable: true
+          description: 从文件名解析；无法解析时为 null
+        date:
+          type: string
+          format: date
+          nullable: true
+          description: 从文件名解析；无法解析时为 null
+
+    InterviewPrepFile:
+      type: object
+      required: [slug, filename, exists, mtime]
+      properties:
+        slug:
+          type: string
+        filename:
+          type: string
+        exists:
+          type: boolean
+        mtime:
+          type: string
+          format: date-time
+          nullable: true
+
+    StateDefinition:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        aliases:
+          type: array
+          items:
+            type: string
+        description:
+          type: string
+        dashboard_group:
+          type: string
+        badge_variant:
+          type: string
+          enum: [success, info, warning, danger, primary, purple, neutral]
+          description: 前端状态徽标的视觉变体，由状态元数据驱动
+
+  # ─── 通用参数 ─────────────────────────────────────────────────────────────
+
+  parameters:
+    limitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 100
+        maximum: 500
+    offsetParam:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        default: 0
+
+  # ─── 通用响应 ─────────────────────────────────────────────────────────────
+
+  responses:
+    '401':
+      description: 未认证
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    '403':
+      description: 权限不足
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    '404':
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    '409':
+      description: 文件写冲突（锁超时）
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+# ─── 路径 ────────────────────────────────────────────────────────────────────
+
+paths:
+
+  # ── 应用追踪 ────────────────────────────────────────────────────────────
+
+  /api/applications:
+    get:
+      summary: 获取全部应用记录
+      tags: [Applications]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ApplicationStatus'
+          description: 按状态过滤
+        - name: minScore
+          in: query
+          schema:
+            type: number
+        - name: maxScore
+          in: query
+          schema:
+            type: number
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: 模糊搜索 company/role
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [num, date, score, status, company]
+            default: num
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: 应用列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Application'
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/401'
+
+    post:
+      summary: 新增一条投递记录
+      description: |
+        用于手动添加或将评估报告入库 Tracker。
+        仅写入 applications.md 的原生字段；salary/city/direction 是只读 join 派生字段，不接受写入。
+      tags: [Applications]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationCreate'
+      responses:
+        '201':
+          description: 投递记录已新增
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+        '409':
+          $ref: '#/components/responses/409'
+
+  /api/applications/{num}:
+    get:
+      summary: 获取单条应用详情
+      tags: [Applications]
+      parameters:
+        - name: num
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 应用详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+        '404':
+          $ref: '#/components/responses/404'
+
+    patch:
+      summary: 更新应用状态/备注
+      description: |
+        PATCH 仅允许更新 status 和 notes 字段，这是应用追踪文件的设计约束。
+        salary/city/direction 等 join 派生字段只读，不允许通过 PATCH 写入。
+        使用文件级排他锁确保原子写入。
+        如果文件被其他进程锁定，返回 409 Conflict。
+      tags: [Applications]
+      parameters:
+        - name: num
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationUpdate'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+        '404':
+          $ref: '#/components/responses/404'
+        '409':
+          $ref: '#/components/responses/409'
+
+  /api/applications/metrics:
+    get:
+      summary: 获取仪表板聚合指标
+      tags: [Applications]
+      responses:
+        '200':
+          description: 指标数据
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardMetrics'
+
+  # ── 管道 ────────────────────────────────────────────────────────────────
+
+  /api/pipeline:
+    get:
+      summary: 获取管道列表
+      tags: [Pipeline]
+      parameters:
+        - name: processed
+          in: query
+          schema:
+            type: boolean
+          description: 按处理状态过滤
+      responses:
+        '200':
+          description: 管道列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pending:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PipelineItem'
+                  processed:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PipelineItem'
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PipelineItem'
+
+    post:
+      summary: 向管道添加新 URL
+      description: 追加到 pipeline.md 的待处理区
+      tags: [Pipeline]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PipelineAddUrl'
+      responses:
+        '201':
+          description: URL 已添加
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipelineItem'
+        '409':
+          $ref: '#/components/responses/409'
+
+    patch:
+      summary: 批量移除或勾选 Pipeline 行
+      description: |
+        按 URL 从 pipeline.md 批量移除，或修改行首 checkbox。
+        每条被移除记录的 URL 同步追写 data/scan-history.tsv，状态记为 skipped_dup，防止重新采集。
+      tags: [Pipeline]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PipelinePatch'
+      responses:
+        '200':
+          description: 写入后的最新 Pipeline 解析结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pending:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PipelineItem'
+                  processed:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PipelineItem'
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PipelineItem'
+        '409':
+          $ref: '#/components/responses/409'
+
+  # ── 报告 ────────────────────────────────────────────────────────────────
+
+  /api/reports:
+    get:
+      summary: 获取报告列表（仅摘要）
+      description: 仅解析报告头部元数据（前 1000 字节），不返回完整内容
+      tags: [Reports]
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+        - name: minScore
+          in: query
+          schema:
+            type: number
+        - name: archetype
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 报告摘要列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EvaluationReportSummary'
+                  total:
+                    type: integer
+
+  /api/reports/{num}:
+    get:
+      summary: 获取单份报告完整内容
+      description: 解析报告的 A-F 6 个块、10 维度评分等完整结构
+      tags: [Reports]
+      parameters:
+        - name: num
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 报告详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationReportDetail'
+        '404':
+          $ref: '#/components/responses/404'
+
+  /api/reports/{num}/raw:
+    get:
+      summary: 获取报告原始 Markdown
+      tags: [Reports]
+      parameters:
+        - name: num
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 原始 Markdown
+          content:
+            text/markdown:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/404'
+
+  # ── 配置管理 ────────────────────────────────────────────────────────────
+
+  /api/config/profile:
+    get:
+      summary: 获取用户配置
+      description: 解析 config/profile.yml
+      tags: [Config]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+    put:
+      summary: 更新用户配置
+      description: 整体替换 config/profile.yml
+      tags: [Config]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfile'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '409':
+          $ref: '#/components/responses/409'
+
+  /api/config/portals:
+    get:
+      summary: 获取门户配置
+      description: 解析 portals.yml
+      tags: [Config]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortalConfig'
+    put:
+      summary: 更新门户配置
+      description: 整体替换 portals.yml
+      tags: [Config]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortalConfig'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortalConfig'
+        '409':
+          $ref: '#/components/responses/409'
+
+  /api/config/cv:
+    get:
+      summary: 获取 CV Markdown
+      tags: [Config]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkdownFile'
+    put:
+      summary: 更新 CV Markdown
+      tags: [Config]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarkdownFile'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkdownFile'
+        '409':
+          $ref: '#/components/responses/409'
+
+  /api/config/user-profile-md:
+    get:
+      summary: 获取 modes/_profile.md
+      tags: [Config]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkdownFile'
+    put:
+      summary: 更新 modes/_profile.md
+      tags: [Config]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarkdownFile'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkdownFile'
+        '409':
+          $ref: '#/components/responses/409'
+
+  /api/config/states:
+    get:
+      summary: 获取规范状态定义
+      description: 解析 templates/states.yml
+      tags: [Config]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StateDefinition'
+
+  # ── 故事库 ──────────────────────────────────────────────────────────────
+
+  /api/story-bank:
+    get:
+      summary: 获取 STAR+R 故事列表
+      description: 解析 interview-prep/story-bank.md 中 `## Stories` 下的故事列表
+      tags: [StoryBank]
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: 按标题、正文或适用场景搜索
+        - name: theme
+          in: query
+          schema:
+            type: string
+          description: 按主题或适用场景过滤
+      responses:
+        '200':
+          description: 故事列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, total]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StoryBankStory'
+                  total:
+                    type: integer
+
+    post:
+      summary: 追加一条 STAR+R 故事
+      description: |
+        往 interview-prep/story-bank.md 尾部追加一条故事。
+        写入格式保持 `### [标签] 标题`，并依次写入来源、S/T/A/R、Reflection、适用于字段。
+      tags: [StoryBank]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoryBankStoryCreate'
+      responses:
+        '201':
+          description: 故事已追加
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoryBankStory'
+        '409':
+          $ref: '#/components/responses/409'
+
+  # ── 扫描历史 ────────────────────────────────────────────────────────────
+
+  /api/scan-history:
+    get:
+      summary: 获取扫描历史
+      description: |
+        解析 data/scan-history.tsv，支持分页。
+        当 aggregate=daily 时，忽略明细分页，返回按 portal + 日期聚合的 added/skipped 计数。
+      tags: [ScanHistory]
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+        - name: since
+          in: query
+          schema:
+            type: string
+            format: date
+          description: 只返回该日期之后的记录
+        - name: company
+          in: query
+          schema:
+            type: string
+        - name: aggregate
+          in: query
+          schema:
+            type: string
+            enum: [daily]
+          description: 设置为 daily 时返回按 portal + 日期聚合的 added/skipped 计数
+      responses:
+        '200':
+          description: 扫描历史明细，或 aggregate=daily 时的每日聚合
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    required: [data, total]
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ScanHistoryEntry'
+                      total:
+                        type: integer
+                  - type: object
+                    required: [data, total]
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ScanHistoryDailyAggregate'
+                      total:
+                        type: integer
+
+  # ── 批处理 ──────────────────────────────────────────────────────────────
+
+  /api/batch:
+    get:
+      summary: 获取批处理状态
+      description: 解析 batch/batch-state.tsv + tracker-additions/
+      tags: [Batch]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BatchJob'
+                  pendingMerge:
+                    type: integer
+                    description: tracker-additions/ 下待合并的 TSV 文件数
+                  summary:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      completed:
+                        type: integer
+                      failed:
+                        type: integer
+                      pending:
+                        type: integer
+
+  # ── 只读落账历史 ────────────────────────────────────────────────────────
+
+  /api/task-history:
+    get:
+      summary: 获取任务执行历史
+      description: 解析 data/task-history.tsv；文件从执行器启用日起累积，不回填历史日志
+      tags: [History]
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+      responses:
+        '200':
+          description: 任务历史列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, total]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TaskHistoryEntry'
+                  total:
+                    type: integer
+
+  /api/activity-log:
+    get:
+      summary: 获取活动历史
+      description: 解析 data/activity-log.tsv 的 ts/type/summary 只读列表
+      tags: [History]
+      responses:
+        '200':
+          description: 活动历史列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, total]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ActivityLogEntry'
+                  total:
+                    type: integer
+
+  /api/metrics-history:
+    get:
+      summary: 获取每日指标快照
+      description: 解析 data/metrics-history.tsv 的只读列表
+      tags: [History]
+      responses:
+        '200':
+          description: 每日指标快照列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, total]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MetricsHistoryEntry'
+                  total:
+                    type: integer
+
+  # ── 脚本执行 ────────────────────────────────────────────────────────────
+
+  /api/scripts/{name}:
+    post:
+      summary: 执行已有脚本
+      description: |
+        通过 child_process 调用已有 .mjs 脚本。
+        脚本异步执行，立即返回 jobId。
+        通过 SSE `/api/events` 推送执行进度和结果。
+        同一脚本不允许并行执行。
+      tags: [Scripts]
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - merge          # node merge-tracker.mjs
+              - verify         # node verify-pipeline.mjs
+              - normalize      # node normalize-statuses.mjs
+              - dedup          # node dedup-tracker.mjs
+              - doctor         # node doctor.mjs
+              - pdf            # node generate-pdf.mjs
+              - boss-scan      # node scrapers/boss/boss-rpa-scan.mjs
+              - boss-hs        # node scrapers/boss/boss-hs-rpa.mjs
+              - zhaopin-hs     # node scrapers/zhaopin/zhaopin-hs-rpa.mjs
+              - pipeline-process  # node process-pipeline.mjs
+              - sync-check     # node cv-sync-check.mjs
+      requestBody:
+        description: 脚本参数（可选）
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                args:
+                  type: array
+                  items:
+                    type: string
+                  description: 传递给脚本的命令行参数
+                dryRun:
+                  type: boolean
+                  default: false
+                  description: 是否以 --dry-run 模式执行
+      responses:
+        '202':
+          description: 脚本已开始异步执行
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScriptExecution'
+        '409':
+          description: 该脚本正在运行中
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: 取消运行中的脚本任务
+      x-effective-route: /api/scripts/{jobId}
+      description: |
+        本操作对应 `DELETE /api/scripts/{jobId}`。
+        OpenAPI 路径模板与同路径 POST 共用 `{name}` 占位名；DELETE 时该值按 jobId 解释并终止对应进程。
+      tags: [Scripts]
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: DELETE 请求中按 jobId 解释
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 已发送终止信号
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScriptExecution'
+        '404':
+          $ref: '#/components/responses/404'
+
+  /api/scripts/{jobId}/status:
+    get:
+      summary: 查询脚本执行状态
+      tags: [Scripts]
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScriptExecution'
+        '404':
+          $ref: '#/components/responses/404'
+
+  # ── Claude headless AI 任务 ─────────────────────────────────────────────
+
+  /api/ai-tasks:
+    post:
+      summary: 启动 Claude headless AI 任务
+      description: |
+        根据 mode 白名单读取对应的 modes/{mode}.md，以 target 和 args 组装任务输入。
+        执行方式使用 `claude -p` headless 调用，参照 batch/batch-runner.sh 的现有 worker 模式。
+        全局并发数固定为 1；已有 AI 任务运行时返回 409 Conflict。
+        创建后立即返回 jobId。任务状态复用 GET `/api/scripts/{jobId}/status`；
+        进度、完成和失败事件复用 GET `/api/events` 中的
+        `script-progress`、`script-completed`、`script-failed` SSE 事件。
+      tags: [AITasks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiTaskRequest'
+      responses:
+        '202':
+          description: AI 任务已进入单并发执行队列
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiTaskAccepted'
+        '409':
+          description: 已有 AI 任务正在运行
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── PDF 静态文件 ────────────────────────────────────────────────────────
+
+  /api/files/pdf:
+    get:
+      summary: 获取 PDF 文件列表
+      description: 递归列出 output/ 下的 PDF，返回文件元数据及从文件名解析的 company/date
+      tags: [Files]
+      responses:
+        '200':
+          description: PDF 文件列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, total]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PdfFile'
+                  total:
+                    type: integer
+
+  /api/files/pdf/{filename}:
+    get:
+      summary: 下载/预览 PDF
+      description: 静态服务 output/ 目录下的 PDF 文件
+      tags: [Files]
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: PDF 文件
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/404'
+
+  # ── 面试准备产物 ────────────────────────────────────────────────────────
+
+  /api/interview-prep:
+    get:
+      summary: 获取面试准备产物文件清单
+      description: 返回 interview-prep/ 下产物文件的 slug、文件名、存在性与 mtime
+      tags: [InterviewPrep]
+      responses:
+        '200':
+          description: 面试准备产物文件清单
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, total]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/InterviewPrepFile'
+                  total:
+                    type: integer
+
+  /api/interview-prep/{slug}:
+    get:
+      summary: 获取单份面试准备原始 Markdown
+      tags: [InterviewPrep]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 原始 Markdown
+          content:
+            text/markdown:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/404'
+
+  # ── SSE 事件流 ──────────────────────────────────────────────────────────
+
+  /api/events:
+    get:
+      summary: SSE 事件流
+      description: |
+        Server-Sent Events 端点，推送以下事件类型：
+        - `applications-updated`: applications.md 变更
+        - `pipeline-updated`: pipeline.md 变更
+        - `config-updated`: 配置文件变更（携带 filename）
+        - `report-added`: 新报告文件创建
+        - `batch-updated`: 批处理状态变更
+        - `script-progress`: 脚本执行进度（携带 jobId + 从 ##PROGRESS 行解析的 progress）
+        - `script-completed`: 脚本执行完成
+        - `script-failed`: 脚本执行失败（携带 error）
+        - AI 任务复用上述 `script-progress` / `script-completed` / `script-failed` 事件
+        - `external-change`: 文件被非 Web 层修改
+      tags: [Events]
+      responses:
+        '200':
+          description: SSE 事件流
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: |
+                  event: applications-updated
+                  data: {"timestamp":"2026-04-28T12:00:00Z"}
+
+                  event: script-progress
+                  data: {"jobId":"abc-123","progress":{"step":"搜索翻页","current":3,"total":10,"found":42}}
+
+# ─── 标签 ────────────────────────────────────────────────────────────────────
+
+tags:
+  - name: Applications
+    description: 应用追踪表（data/applications.md）
+  - name: Pipeline
+    description: URL 收件箱（data/pipeline.md）
+  - name: Reports
+    description: 评估报告（reports/）
+  - name: Config
+    description: 配置管理（profile.yml / portals.yml / cv.md / _profile.md / states.yml）
+  - name: ScanHistory
+    description: 扫描历史（data/scan-history.tsv）
+  - name: StoryBank
+    description: STAR+R 故事库（interview-prep/story-bank.md）
+  - name: Batch
+    description: 批处理状态（batch/）
+  - name: History
+    description: Web 层落账历史（task-history.tsv / activity-log.tsv / metrics-history.tsv）
+  - name: Scripts
+    description: 脚本执行（merge / verify / scan 等）
+  - name: AITasks
+    description: Claude headless AI 任务（claude -p，单并发）
+  - name: Files
+    description: PDF 文件列表与下载/预览
+  - name: InterviewPrep
+    description: 面试准备产物文件（interview-prep/）
+  - name: Events
+    description: SSE 实时事件推送
+
+# ─── 明确不提供 ────────────────────────────────────────────────────────────────
+
+x-explicitly-not-provided:
+  description: 防止后续会话自行发明未冻结的端点或服务端能力
+  items:
+    - capability: 列表搜索/筛选/排序/分页参数
+      disposition: 前端过滤
+      alternative: 除契约已明确存在的参数外，不新增通用列表参数；页面在已加载数据上处理
+    - capability: CSV 导出
+      disposition: 前端解决
+      alternative: 前端对当前列表直接序列化为 CSV
+    - capability: 缺失 PDF 差集
+      disposition: 前端解决
+      alternative: 前端组合 GET /api/reports 与 GET /api/files/pdf 计算
+    - capability: 统一全局搜索
+      disposition: 前端解决
+      alternative: 前端 ⌘K 聚合已加载的应用、Pipeline 与报告数据
+    - capability: Dashboard 聚合指标端点
+      disposition: 前端解决
+      alternative: 前端组合既有 applications、pipeline、reports、scan-history 与 metrics-history 端点
+    - capability: 通知中心资源
+      disposition: 前端解决
+      alternative: 复用 GET /api/activity-log
+    - capability: 环境健康端点
+      disposition: 后续指令吸收
+      alternative: 走 POST /api/scripts/doctor 的 --json 输出
+    - capability: 简历模板管理
+      disposition: 设计稿降级
+      alternative: 当前仅支持 1 个固定模板，不提供模板资源端点
+    - capability: 故事编辑/删除
+      disposition: 二期 P2
+      alternative: 1.2 仅提供 GET/POST /api/story-bank
+    - capability: PDF 删除/批量 ZIP
+      disposition: 二期 P2
+      alternative: 1.2 仅提供 PDF 列表和单文件读取
+    - capability: 报告对比结构化读取
+      disposition: 二期 P2
+      alternative: 1.2 可通过 POST /api/ai-tasks 生成文本结果，不承诺结构化对比端点

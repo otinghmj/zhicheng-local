@@ -1,0 +1,63 @@
+/* Career-Ops 设计令牌 — 颜色
+   统一来源：7 页设计稿 + Figma-dashboard-结构整理手册 */
+:root {
+  /* ── 品牌主色（橙） ───────────────────────────── */
+  --co-primary: #FF7D00;
+  --co-primary-hover: #E86F00;
+  --co-primary-active: #D26400;
+  --co-primary-soft: #FFF7ED;     /* 浅橙底（运行中任务卡、选中态） */
+  --co-primary-soft-border: #FFEDD5;
+  --co-primary-text-on: #FFFFFF;
+
+  /* ── 中性色 · 文字 ───────────────────────────── */
+  --co-text-1: #111827;           /* 标题 / 主数字 */
+  --co-text-2: #4B5563;           /* 正文 */
+  --co-text-3: #6B7280;           /* 次要说明 */
+  --co-text-4: #9CA3AF;           /* 弱化 / 占位 */
+  --co-text-disabled: #D1D5DB;
+
+  /* ── 中性色 · 背景与边框 ─────────────────────── */
+  --co-bg-page: #F7F8FA;          /* 页面背景 */
+  --co-bg-card: #FFFFFF;          /* 卡片背景 */
+  --co-bg-subtle: #F9FAFB;        /* 表头 / 嵌套区域 */
+  --co-bg-hover: #F3F4F6;         /* 行 hover / 导航 hover */
+  --co-border-card: #F0F0F0;      /* 卡片描边（手册基准） */
+  --co-border-control: #E5E7EB;   /* 输入框 / 按钮描边 */
+  --co-divider: #F3F4F6;          /* 分隔线 */
+
+  /* ── 语义色 ─────────────────────────────────── */
+  --co-success: #16A34A;
+  --co-success-fg: #22C55E;
+  --co-success-soft: #F0FDF4;
+  --co-success-border: #DCFCE7;
+
+  --co-info: #2563EB;
+  --co-info-fg: #3B82F6;
+  --co-info-soft: #EFF6FF;
+  --co-info-border: #DBEAFE;
+
+  --co-warning: #CA8A04;
+  --co-warning-fg: #EAB308;
+  --co-warning-soft: #FEFCE8;
+  --co-warning-border: #FEF9C3;
+
+  --co-danger: #DC2626;
+  --co-danger-fg: #EF4444;
+  --co-danger-soft: #FEF2F2;
+  --co-danger-border: #FEE2E2;
+
+  --co-purple: #7C3AED;
+  --co-purple-soft: #F5F3FF;
+  --co-purple-border: #EDE9FE;
+
+  /* ── 语义别名（贴近 Antd 主题变量，便于落地） ── */
+  --co-colorPrimary: var(--co-primary);
+  --co-colorSuccess: var(--co-success);
+  --co-colorInfo: var(--co-info);
+  --co-colorWarning: var(--co-warning);
+  --co-colorError: var(--co-danger);
+  --co-colorTextBase: var(--co-text-1);
+  --co-colorBgLayout: var(--co-bg-page);
+  --co-colorBgContainer: var(--co-bg-card);
+  --co-colorBorderSecondary: var(--co-border-card);
+}

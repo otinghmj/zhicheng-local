@@ -1,0 +1,61 @@
+:root {
+  font-family: var(--co-font-sans);
+  color: var(--co-text-2);
+  background: var(--co-bg-page);
+  font-feature-settings: var(--co-font-numeric);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--co-bg-page);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+.app-page {
+  max-width: var(--co-content-max);
+  margin: 0 auto;
+  padding: var(--co-section-gap) var(--co-page-pad-x) 40px;
+}
+
+.app-page__head {
+  margin-bottom: var(--co-section-gap);
+}
+
+.app-page__head h1 {
+  margin: 0 0 6px;
+  color: var(--co-text-1);
+  font-size: var(--co-fs-page-title);
+}
+
+.app-page__head p,
+.app-placeholder p {
+  margin: 0;
+  color: var(--co-text-3);
+}
+
+.app-placeholder {
+  padding: var(--co-card-pad);
+  border: 1px solid var(--co-border-card);
+  border-radius: var(--co-radius-card);
+  background: var(--co-bg-card);
+  box-shadow: var(--co-shadow-card);
+}
+
+.app-placeholder h2 {
+  margin: 0 0 8px;
+  color: var(--co-text-1);
+  font-size: var(--co-fs-card-title);
+}
