@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 前程无忧（51job）采集报告 → pipeline.md 写入器
 //
-// 与 boss-rpa-to-pipeline.mjs 结构相同，但使用 51job URL 格式做去重。
+// 使用 51job URL 格式做去重。
 
 import fs   from "node:fs/promises";
 import path from "node:path";

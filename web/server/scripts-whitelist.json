@@ -1,7 +1,5 @@
 {
   "generate-pdf": "generate-pdf.mjs",
   "51job-opencli": "scrapers/51job/51job-opencli.mjs",
-  "liepin-hs": "scrapers/liepin/liepin-dom.mjs",
-  "zhaopin-hs": "scrapers/zhaopin/zhaopin-hs-rpa.mjs",
-  "boss-hs": "scrapers/boss/boss-hs-rpa.mjs"
+  "liepin-dom": "scrapers/liepin/liepin-dom.mjs"
 }

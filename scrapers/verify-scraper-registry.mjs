@@ -103,47 +103,6 @@ async function main() {
       console.log(`  ${GREEN}✓ scrapers/shared/README.md${RESET}`);
     }
 
-    // 4. 项目说明/核心文件索引.md
-    if (!contains(docs.coreIndex, scriptBasename)) {
-      console.log(`  ${RED}✗ 项目说明/核心文件索引.md 未引用 ${scriptBasename}${RESET}`);
-      errors++; platformOk = false;
-    } else {
-      console.log(`  ${GREEN}✓ 项目说明/核心文件索引.md${RESET}`);
-    }
-
-    // 5. 项目说明/目录结构.md
-    if (!contains(docs.dirStructure, scriptBasename)) {
-      console.log(`  ${RED}✗ 项目说明/目录结构.md 未引用 ${scriptBasename}${RESET}`);
-      errors++; platformOk = false;
-    } else {
-      console.log(`  ${GREEN}✓ 项目说明/目录结构.md${RESET}`);
-    }
-
-    // 6. skill references/{platform}.md
-    if (cfg.skillRef) {
-      const skillRefPath = docFiles.skillRefsDir + cfg.skillRef;
-      if (!await fileExists(skillRefPath)) {
-        console.log(`  ${YELLOW}⚠  skill 参考文件不存在: ${skillRefPath}${RESET}`);
-        warnings++;
-      } else {
-        const content = await readText(skillRefPath);
-        if (!contains(content, scriptBasename)) {
-          console.log(`  ${RED}✗ ${skillRefPath} 未引用 ${scriptBasename}${RESET}`);
-          errors++; platformOk = false;
-        } else {
-          console.log(`  ${GREEN}✓ skill/${cfg.skillRef}${RESET}`);
-        }
-      }
-    }
-
-    // 7. SKILL.md 能力表 mode 列（宽松检查：mode 字符串出现在 SKILL.md 里即可）
-    if (!contains(docs.skillBase, cfg.mode)) {
-      console.log(`  ${YELLOW}⚠  SKILL.md 能力表未找到 mode="${cfg.mode}"（需手动核对）${RESET}`);
-      warnings++;
-    } else {
-      console.log(`  ${GREEN}✓ SKILL.md 含 mode "${cfg.mode}"${RESET}`);
-    }
-
     if (platformOk) {
       console.log(`  → ${GREEN}全部通过${RESET}`);
     }

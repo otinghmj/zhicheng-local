@@ -256,8 +256,8 @@ export interface PortalConfig {
     enabled?: boolean;
   }>;
   search_queries?: {
-    boss?: Array<{ query?: string; city?: string }>;
-    zhaopin?: Array<{ query?: string; city?: string }>;
+    '51job'?: Array<{ query?: string; city?: string }>;
+    liepin?: Array<{ query?: string; city?: string }>;
   };
 }
 
@@ -272,8 +272,6 @@ export interface CityCode {
 }
 
 export interface CityCodes {
-  boss: CityCode[];
-  zhaopin: CityCode[];
   liepin: CityCode[];
   '51job': CityCode[];
 }
@@ -438,17 +436,9 @@ export type SortOrder = 'asc' | 'desc';
 export type ScanHistoryAggregate = 'daily';
 
 export type ScriptName =
-  | 'merge'
-  | 'verify'
-  | 'normalize'
-  | 'dedup'
-  | 'doctor'
-  | 'pdf'
-  | 'boss-scan'
-  | 'boss-hs'
-  | 'zhaopin-hs'
-  | 'pipeline-process'
-  | 'sync-check';
+  | 'generate-pdf'
+  | '51job-opencli'
+  | 'liepin-dom';
 
 export interface ScriptRunRequest {
   args?: string[];

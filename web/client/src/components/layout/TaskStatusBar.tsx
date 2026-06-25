@@ -48,9 +48,8 @@ const MODE_LABELS: Record<string, string> = {
   'dedup': '去重跟踪记录',
   'doctor': '环境检查',
   'pdf': '生成 PDF',
-  'boss-hs': 'BOSS 采集',
-  'boss-scan': 'BOSS 扫描',
-  'zhaopin-hs': '智联采集',
+  '51job-opencli': '前程无忧采集',
+  'liepin-dom': '猎聘采集',
   'pipeline-process': '队列处理',
   'sync-check': 'CV 同步检查',
 };

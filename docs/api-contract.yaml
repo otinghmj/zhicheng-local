@@ -535,7 +535,7 @@ components:
         search_queries:
           type: object
           properties:
-            boss:
+            51job:
               type: array
               items:
                 type: object
@@ -544,7 +544,7 @@ components:
                     type: string
                   city:
                     type: string
-            zhaopin:
+            liepin:
               type: array
               items:
                 type: object
@@ -1609,17 +1609,9 @@ paths:
           schema:
             type: string
             enum:
-              - merge          # node merge-tracker.mjs
-              - verify         # node verify-pipeline.mjs
-              - normalize      # node normalize-statuses.mjs
-              - dedup          # node dedup-tracker.mjs
-              - doctor         # node doctor.mjs
-              - pdf            # node generate-pdf.mjs
-              - boss-scan      # node scrapers/boss/boss-rpa-scan.mjs
-              - boss-hs        # node scrapers/boss/boss-hs-rpa.mjs
-              - zhaopin-hs     # node scrapers/zhaopin/zhaopin-hs-rpa.mjs
-              - pipeline-process  # node process-pipeline.mjs
-              - sync-check     # node cv-sync-check.mjs
+              - generate-pdf    # node generate-pdf.mjs
+              - 51job-opencli   # node scrapers/51job/51job-opencli.mjs
+              - liepin-dom      # node scrapers/liepin/liepin-dom.mjs
       requestBody:
         description: 脚本参数（可选）
         content:

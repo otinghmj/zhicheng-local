@@ -128,7 +128,7 @@ export function Dashboard() {
     { name: '基础环境', icon: '基', patterns: ['node.js', 'dependencies', 'playwright'] },
     { name: '求职配置', icon: '配', patterns: ['cv.md', 'profile.yml', 'portals.yml'] },
     { name: '数据目录', icon: '数', patterns: ['data/', 'output/', 'reports/'] },
-    { name: 'BOSS RPA', icon: 'B', patterns: ['boss api-server', 'chrome cdp', 'hammerspoon'] },
+    { name: '采集环境', icon: '采', patterns: ['chrome', 'opencli'] },
   ], []);
 
   if (dataLoading) {

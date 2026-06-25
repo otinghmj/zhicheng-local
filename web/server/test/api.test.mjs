@@ -52,11 +52,11 @@ describe('GET API', () => {
     expect(body).toMatchObject({ content: expect.any(String), lastModified: expect.any(String) });
   });
 
-  it('返回四个平台的完整城市代码', async () => {
+  it('返回当前支持平台的城市代码', async () => {
     const { response, body } = await json('/api/config/cities');
     expect(response.status).toBe(200);
-    expect(body.boss.length).toBeGreaterThan(300);
-    expect(body.zhaopin.length).toBeGreaterThan(400);
+    expect(body.boss).toBeUndefined();
+    expect(body.zhaopin).toBeUndefined();
     expect(body['51job'].length).toBeGreaterThan(3000);
     expect(body.liepin.length).toBeGreaterThan(280);
     expect(body.liepin).toContainEqual({ name: '北京', code: '010' });

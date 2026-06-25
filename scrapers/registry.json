@@ -1,16 +1,6 @@
 {
   "_comment": "每个平台的主采集脚本唯一真值。替换脚本时先更新此文件，再运行 node scrapers/verify-scraper-registry.mjs 验证全部文档同步。",
   "platforms": {
-    "boss": {
-      "mainScript": "scrapers/boss/boss-hs-rpa.mjs",
-      "mode": "Hammerspoon",
-      "skillRef": "references/boss.md"
-    },
-    "zhaopin": {
-      "mainScript": "scrapers/zhaopin/zhaopin-hs-rpa.mjs",
-      "mode": "Hammerspoon",
-      "skillRef": "references/zhaopin.md"
-    },
     "51job": {
       "mainScript": "scrapers/51job/51job-opencli.mjs",
       "mode": "OpenCLI",
@@ -23,10 +13,6 @@
     }
   },
   "docFiles": {
-    "sharedReadme":    "scrapers/shared/README.md",
-    "coreIndex":       "项目说明/核心文件索引.md",
-    "dirStructure":    "项目说明/目录结构.md",
-    "skillBase":       "~/.claude/skills/job-scraper/SKILL.md",
-    "skillRefsDir":    "~/.claude/skills/job-scraper/"
+    "sharedReadme": "scrapers/shared/README.md"
   }
 }

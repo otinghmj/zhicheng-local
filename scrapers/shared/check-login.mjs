@@ -5,65 +5,18 @@
  * 工作原理：
  *   1. 通过 CDP Storage.getCookies 快速预检 auth cookie 是否存在
  *   2. 若 cookie 存在，在浏览器上下文（Runtime.evaluate）内发一个轻量 API 请求验证有效性
- *      （绕过直接 HTTP 被拦截的问题，如智联的 Tencent EdgeOne、51job 的 antidom.js）
+ *      （绕过直接 HTTP 被拦截的问题，如 51job 的 antidom.js）
  *   3. 未登录时：CDP 打开登录页，终端提示，每 3 秒自动轮询直到检测到已登录
  *
  * 导出：
  *   ensureLoggedIn(platform, opts)      → Promise<void>
  *   extractCookiesAsString(cdpUrl, domain) → Promise<{ cookieJar, xsrfToken }>
  *
- * 支持平台：boss | zhaopin | 51job | liepin
+ * 支持平台：51job | liepin
  */
 
 // ── 各平台配置 ───────────────────────────────────────────────────────────────
 const PLATFORM_CONFIG = {
-  boss: {
-    name: "BOSS直聘",
-    domain: ".zhipin.com",
-    // 登录页（CDP 导航到这里让用户手动登录）
-    loginUrl: "https://www.zhipin.com/web/user/?ka=header-login",
-    // 登录后跳转落地页（用于判断登录成功：URL 离开了 /web/user/）
-    postLoginUrlPattern: /zhipin\.com(?!\/web\/user)/,
-    // auth cookie 名称（wt2 是真正的登录凭证，__zp_stoken__ 仅是安全令牌不能单独判定登录）
-    authCookies: ["wt2"],
-    // 在浏览器上下文内执行的验证脚本（返回 "ok" 或 "need_login"）
-    verifyScript: `(async () => {
-      try {
-        const r = await fetch('/wapi/zpgeek/user/jobseeker/baseinfo.json', {
-          credentials: 'include',
-          headers: { 'Accept': 'application/json' }
-        });
-        const d = await r.json();
-        return d.code === 0 ? 'ok' : 'need_login';
-      } catch { return 'need_login'; }
-    })()`,
-    // 轮询时用于检测登录是否完成的 cookie（只要这些 cookie 出现就视为登录成功）
-    loginSuccessCookies: ["wt2"],
-  },
-
-  zhaopin: {
-    name: "智联招聘",
-    domain: ".zhaopin.com",
-    loginUrl: "https://passport.zhaopin.com/login",
-    postLoginUrlPattern: /zhaopin\.com(?!\/login)/,
-    // 智联 cookie 名称已更新（2025 年后）：at=access_token, rt=refresh_token
-    // 旧名称 sess/zp_token/passport_sess 已废弃
-    authCookies: ["at", "rt", "sess", "zp_token", "passport_sess"],
-    // 智联在已登录页面上 window.__zp_cv_user_info 会有数据
-    verifyScript: `(async () => {
-      try {
-        const r = await fetch('https://www.zhaopin.com/api/user/baseInfo', {
-          credentials: 'include',
-          headers: { 'Accept': 'application/json', 'Referer': 'https://www.zhaopin.com/' }
-        });
-        const d = await r.json();
-        // 已登录返回 {data: {userId: ...}}，未登录返回重定向 HTML 或 4xx
-        return (d?.data?.userId || d?.code === 200) ? 'ok' : 'need_login';
-      } catch { return 'need_login'; }
-    })()`,
-    loginSuccessCookies: ["at", "sess", "zp_token"],
-  },
-
   "51job": {
     name: "前程无忧",
     domain: ".51job.com",
@@ -316,7 +269,7 @@ async function waitForLogin(cdpUrl, config, { timeoutMs = 1_800_000, pollMs = 50
 /**
  * 确保指定平台处于已登录状态，否则引导用户手动登录。
  *
- * @param {string} platform  "boss" | "zhaopin" | "51job"
+ * @param {string} platform  "51job" | "liepin"
  * @param {object} opts
  *   @param {string}  opts.cdpUrl        CDP 地址（默认 http://127.0.0.1:9223）
  *   @param {string}  opts.scriptName    日志前缀

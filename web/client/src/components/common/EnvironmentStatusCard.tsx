@@ -12,7 +12,7 @@ import { useDoctorStatus } from '../../hooks/useDoctorStatus';
 const ITEMS = [
   { label: '数据目录', icon: <FolderOpenOutlined />, keywords: ['data/', 'output/', 'reports/'] },
   { label: '配置文件', icon: <SettingOutlined />, keywords: ['cv.md', 'profile.yml', 'portals.yml'] },
-  { label: 'API 服务', icon: <ApiOutlined />, keywords: ['api-server', 'api service', 'api 服务'] },
+  { label: '后端服务', icon: <ApiOutlined />, keywords: ['端口 3200'] },
   { label: '去重服务', icon: <FilterOutlined />, keywords: ['dependencies'] },
   { label: '评分模型', icon: <FundProjectionScreenOutlined />, keywords: ['node.js'] },
 ] as const;

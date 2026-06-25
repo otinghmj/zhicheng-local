@@ -115,6 +115,8 @@ npm start          # 启动本地 Web
 npm run agent      # 启动本地 Agent 连接器
 npm run mcp:setup  # 自动写入 MCP 配置
 npm run mcp:remove # 移除 MCP 配置
+npm run 51job:opencli # 运行前程无忧采集器
+npm run liepin:dom    # 运行猎聘采集器
 ```
 
 如果你全局安装了命令，也可以用：
@@ -126,7 +128,18 @@ zhicheng start
 zhicheng agent
 ```
 
-## 9. 数据安全提醒
+## 9. 当前支持的采集器
+
+采集器可以理解成“从招聘网站页面里提取岗位信息的小工具”。
+
+当前正式支持：
+
+- 猎聘：使用本机 Chrome 页面采集。
+- 前程无忧（51job）：使用 OpenCLI 采集。
+
+BOSS 直聘和智联招聘的旧采集器依赖 Hammerspoon。Hammerspoon 可以理解成“macOS 上的自动点击工具”。它对普通用户来说不够稳定，所以已经从本地大众版中移除。
+
+## 10. 数据安全提醒
 
 不要提交这些真实个人数据：
 

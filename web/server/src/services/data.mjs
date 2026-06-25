@@ -239,7 +239,8 @@ export async function getCv() {
 export async function getCityCodes() {
   try {
     const data = JSON.parse(await readFile(PATHS.cityCodes, 'utf8'));
-    return Object.fromEntries(Object.entries(data).map(([platform, cities]) => [
+    const supportedPlatforms = new Set(['51job', 'liepin']);
+    return Object.fromEntries(Object.entries(data).filter(([platform]) => supportedPlatforms.has(platform)).map(([platform, cities]) => [
       platform,
       Object.entries(cities)
         .filter(([name]) => !name.startsWith('_'))

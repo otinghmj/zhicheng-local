@@ -13,8 +13,8 @@
     "mcp:setup": "node web/server/setup-mcp.mjs",
     "mcp:remove": "node web/server/setup-mcp.mjs --remove",
     "pdf": "node generate-pdf.mjs",
-    "boss:api": "node scrapers/shared/api-server.mjs",
     "51job:opencli": "node scrapers/51job/51job-opencli.mjs",
+    "liepin:dom": "node scrapers/liepin/liepin-dom.mjs",
     "dev:server": "npm --prefix web/server run dev",
     "dev:client": "npm --prefix web/client run dev",
     "dev": "node scripts/start.mjs --dev"

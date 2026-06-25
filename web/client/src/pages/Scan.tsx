@@ -55,7 +55,8 @@ import type { CityCodes, ScriptProgress, TaskHistoryEntry } from '../types';
 import './scan.css';
 
 type LoadState = 'loading' | 'ready' | 'error';
-type Platform = 'BOSS' | '智联' | '猎聘' | '51job';
+type Platform = '猎聘' | '51job';
+type HistoryPlatform = Platform | 'BOSS' | '智联' | '其他';
 type ScanFormValues = { platform: Platform; query: string; cities: string[]; rounds: number };
 type RunningTask = {
   id: string;
@@ -67,7 +68,7 @@ type RunningTask = {
 };
 type HistoryRow = TaskHistoryEntry & {
   key: string;
-  platform: Platform | '其他';
+  platform: HistoryPlatform;
   query: string;
   city: string;
   current?: number;
@@ -80,21 +81,19 @@ type TaskHistoryApiRow = Partial<TaskHistoryEntry> & {
 };
 
 const PLATFORM_OPTIONS: Array<{ value: Platform; label: string; variant: PlatformChipVariant; script: string; roundArg: string }> = [
-  { value: 'BOSS', label: 'BOSS直聘', variant: 'boss', script: 'boss-hs', roundArg: '--max-scroll-rounds' },
-  { value: '智联', label: '智联招聘', variant: 'zhaopin', script: 'zhaopin-hs', roundArg: '--max-pages' },
-  { value: '猎聘', label: '猎聘', variant: 'liepin', script: 'liepin-hs', roundArg: '--max-pages' },
+  { value: '猎聘', label: '猎聘', variant: 'liepin', script: 'liepin-dom', roundArg: '--max-pages' },
   { value: '51job', label: '前程无忧（51job）', variant: '51job', script: '51job-opencli', roundArg: '--max-pages' },
 ];
 
-const PLATFORM_CITY_KEYS: Record<Platform, keyof CityCodes> = { BOSS: 'boss', 智联: 'zhaopin', 猎聘: 'liepin', '51job': '51job' };
-const PLATFORM_LOGIN_KEYS: Record<Platform, string> = { BOSS: 'boss', 智联: 'zhaopin', 猎聘: 'liepin', '51job': '51job' };
-const ALL_LOGIN_PLATFORMS = ['boss', 'zhaopin', 'liepin', '51job'];
-const PREFERRED_CITY: Record<Platform, string> = { BOSS: '101280100', 智联: '763', 猎聘: '020', '51job': '030200' };
+const PLATFORM_CITY_KEYS: Record<Platform, keyof CityCodes> = { 猎聘: 'liepin', '51job': '51job' };
+const PLATFORM_LOGIN_KEYS: Record<Platform, string> = { 猎聘: 'liepin', '51job': '51job' };
+const ALL_LOGIN_PLATFORMS = ['liepin', '51job'];
+const PREFERRED_CITY: Record<Platform, string> = { 猎聘: '020', '51job': '030200' };
 
 const numberFormat = new Intl.NumberFormat('zh-CN');
 const { RangePicker } = DatePicker;
 
-function platformMeta(platform: Platform | '其他') {
+function platformMeta(platform: HistoryPlatform) {
   return PLATFORM_OPTIONS.find((item) => item.value === platform) ?? { label: platform, variant: 'boss' as const, script: '', roundArg: '' };
 }
 
@@ -125,7 +124,7 @@ function parseArgs(args: string) {
   };
 }
 
-function inferPlatform(script: string): Platform | '其他' {
+function inferPlatform(script: string): HistoryPlatform {
   const value = script.toLowerCase();
   if (value.includes('boss')) return 'BOSS';
   if (value.includes('zhaopin')) return '智联';
@@ -170,7 +169,7 @@ export function Scan() {
   const [notice, noticeContext] = message.useMessage();
   const navigate = useNavigate();
   const [form] = Form.useForm<ScanFormValues>();
-  const platform = Form.useWatch('platform', form) ?? 'BOSS';
+  const platform = Form.useWatch('platform', form) ?? '猎聘';
   const selectedCities = Form.useWatch('cities', form) ?? [];
   const selectedRounds = Form.useWatch('rounds', form);
   const { scanHistory, taskHistory: storeTaskHistory, loading: dataLoading, error: dataError } = useDataStore();
@@ -255,7 +254,7 @@ export function Scan() {
     const preferred = PREFERRED_CITY[platform];
     const defaultCity = cities.some((city) => city.code === preferred) ? preferred : cities[0]?.code;
     form.setFieldValue('cities', defaultCity ? [defaultCity] : []);
-    form.setFieldValue('rounds', platform === 'BOSS' ? 20 : 10);
+    form.setFieldValue('rounds', 10);
   }, [cityCodes, form, platform]);
 
   const onScriptProgress = useCallback((data: SSEEventData) => {
@@ -497,7 +496,7 @@ export function Scan() {
             ) : chromeReady ? (
               <Alert className="scan-cdp-alert" type="success" showIcon icon={<ChromeOutlined />} message={`调试浏览器就绪${cdp.browser ? ` (${cdp.browser})` : ''}`} />
             ) : null}
-            <Form form={form} layout="vertical" initialValues={{ platform: 'BOSS', query: '', rounds: 20 }} onFinish={(values) => void submitTasks(values)}>
+            <Form form={form} layout="vertical" initialValues={{ platform: '猎聘', query: '', rounds: 10 }} onFinish={(values) => void submitTasks(values)}>
               <Form.Item name="platform" label="平台" rules={[{ required: true, message: '请选择平台' }]}>
                 <Select options={PLATFORM_OPTIONS.map(({ value, label }) => ({ value, label }))} />
               </Form.Item>
@@ -533,7 +532,7 @@ export function Scan() {
                   listHeight={300}
                 />
               </Form.Item>
-              <Form.Item name="rounds" label={platform === 'BOSS' ? '最大滚动轮数' : '最大翻页数'} extra={`对应脚本参数：${selectedPlatform.roundArg}`} rules={[{ required: true, message: '请输入轮数' }, { type: 'number', min: 1, max: 300, message: '请输入 1 到 300 之间的整数' }]}>
+              <Form.Item name="rounds" label="最大翻页数" extra={`对应脚本参数：${selectedPlatform.roundArg}`} rules={[{ required: true, message: '请输入轮数' }, { type: 'number', min: 1, max: 300, message: '请输入 1 到 300 之间的整数' }]}>
                 <InputNumber min={1} max={300} precision={0} />
               </Form.Item>
               <div className="scan-cli-preview"><strong>CLI 参数预览（每个城市一条任务）</strong><code>{cliPreview || '请先填写城市'}</code></div>
@@ -594,8 +593,6 @@ export function Scan() {
             const titleFilter = (portalsData.title_filter ?? {}) as { positive?: string[]; negative?: string[] };
             const trackedCompanies = (portalsData.tracked_companies ?? []) as Array<Record<string, unknown>>;
             const SEARCH_PLATFORMS = [
-              { key: 'boss_searches', label: 'BOSS 直聘', defaultCity: '101020100', cityHint: '上海101020100 深圳101280600 北京101010100 广州101280100' },
-              { key: 'zhaopin_searches', label: '智联招聘', defaultCity: '530', cityHint: '上海530 深圳765 北京530 广州763' },
               { key: 'liepin_searches', label: '猎聘', defaultCity: '020', cityHint: '上海020 深圳050090 北京010 广州050020' },
               { key: '51job_searches', label: '前程无忧', defaultCity: '020000', cityHint: '上海020000 深圳040000 北京010000 广州030200' },
             ] as const;

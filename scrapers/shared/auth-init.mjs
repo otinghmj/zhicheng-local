@@ -3,7 +3,7 @@
 //
 // 用法：
 //   node scrapers/shared/auth-init.mjs                      # 检查全部平台（未登录则等待）
-//   node scrapers/shared/auth-init.mjs --platform boss,liepin  # 只检查指定平台
+//   node scrapers/shared/auth-init.mjs --platform 51job,liepin  # 只检查指定平台
 //   node scrapers/shared/auth-init.mjs --check-only         # 只检查，未登录不等待直接报告
 //
 // 用途：
@@ -14,7 +14,7 @@
 import { ensureChrome } from "./ensure-chrome.mjs";
 import { ensureLoggedIn } from "./check-login.mjs";
 
-const ALL_PLATFORMS = ["boss", "zhaopin", "51job", "liepin"];
+const ALL_PLATFORMS = ["51job", "liepin"];
 
 function parseArgs(argv) {
   const out = { platforms: ALL_PLATFORMS, checkOnly: false };
@@ -29,7 +29,7 @@ function parseArgs(argv) {
         "  node scrapers/shared/auth-init.mjs [选项]",
         "",
         "选项:",
-        "  --platform <p1,p2>   只检查指定平台（可选：boss zhaopin 51job liepin）",
+        "  --platform <p1,p2>   只检查指定平台（可选：51job liepin）",
         "  --check-only         只检查状态，未登录时不等待，直接输出结果",
         "  --help               显示此帮助",
       ].join("\n"));
@@ -42,14 +42,10 @@ function parseArgs(argv) {
 async function checkOnlyLogin(platform, cdpUrl) {
   const { extractCookiesAsString } = await import("./check-login.mjs");
   const DOMAIN_MAP = {
-    boss: ".zhipin.com",
-    zhaopin: ".zhaopin.com",
     "51job": ".51job.com",
     liepin: ".liepin.com",
   };
   const AUTH_COOKIES = {
-    boss:    ["wt2", "__zp_stoken__"],
-    zhaopin: ["at", "rt", "sess", "zp_token"],
     "51job": ["acw_sc__v2", "guid"],
     liepin:  ["lt_auth", "UniqueKey", "liepin_login_valid"],
   };

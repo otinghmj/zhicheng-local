@@ -15,7 +15,7 @@
 //   node scrapers/liepin/liepin-dom.mjs [--query SQE] [--city 010] [--max-pages 10] [--skip-pipeline]
 //
 // 优势（对比旧 liepin-api.mjs）：
-//   - 不再依赖 api-server 中间层
+//   - 不依赖额外 API 中间层
 //   - 绕过 security.min.js + acw_tc WAF 对 API 的拦截
 //   - 利用 Chrome 已登录状态，无需单独管理 cookie
 //
