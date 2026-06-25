@@ -1,4 +1,4 @@
-const DB_NAME = 'career-ops-fs';
+const DB_NAME = 'zhicheng-fs';
 const STORE_NAME = 'handles';
 
 function handleKey(userId?: number | string): string {

@@ -1,101 +1,144 @@
-# 本地版安装说明
+# 职程本地版安装说明
 
-这份说明只适用于 `career-ops-local`，也就是本地模式独立版。
+这份说明面向第一次使用职程的人。
 
-人话解释：你把项目下载安装到自己的电脑上，所有求职数据默认保存在你选择的本地目录里，不需要云端账号。
+人话解释：你只需要把项目下载到电脑，运行初始化命令，再启动网页。你的简历、报告、投递记录默认都保存在本机。
 
-## 1. 需要先准备什么
+## 1. 先安装这些东西
+
+### 必须安装
 
 1. Node.js 18 或更高版本。
-   - Node.js 可以理解成“运行 JavaScript 项目的环境”。
-2. Google Chrome。
-   - 用来复用你自己的招聘网站登录状态。
-3. 一个可用的本地 AI Agent，例如 Codex 或 Cursor。
+   - Node.js 可以理解成“运行这个项目的基础环境”。
+2. Git。
+   - Git 可以理解成“下载和管理代码的工具”。
+3. Google Chrome。
+   - 采集招聘网站岗位时，会复用你自己 Chrome 里的登录状态。
+
+### 推荐安装
+
+1. Claude Code、Cursor 或 Codex 这类本地 AI Agent。
    - Agent 可以理解成“帮你执行 AI 任务的助手”。
-4. 如果要生成 PDF，需要安装 Playwright Chromium。
-   - Playwright 可以理解成“自动打开浏览器生成页面/PDF 的工具”。
 
-## 2. 安装依赖
-
-在仓库根目录运行：
+## 2. 下载项目
 
 ```bash
-npm install
-npm --prefix web/server install
-npm --prefix web/client install
-npx playwright install chromium
+git clone <你的仓库地址> zhicheng
+cd zhicheng
 ```
 
-## 3. 准备个人文件
-
-这些文件包含你的真实个人信息，默认不会提交到 Git：
+## 3. 一键初始化
 
 ```bash
-cp config/profile.example.yml config/profile.yml
-cp modes/_profile.template.md modes/_profile.md
-cp templates/portals.example.yml portals.yml
-touch cv.md
-touch article-digest.md
+npm run setup
 ```
 
-然后手动填写：
+这个命令会做几件事：
+
+- 安装前端和后端依赖。
+- 安装 Playwright Chromium。
+- 创建本地数据目录。
+- 创建个人配置文件模板。
+
+Playwright 可以理解成“自动控制浏览器的工具”，这里主要用于生成 PDF。
+
+## 4. 检查环境
+
+```bash
+npm run doctor
+```
+
+它会检查：
+
+- Node.js 版本。
+- npm 是否可用。
+- 依赖是否安装完整。
+- Chrome 是否存在。
+- 常用端口是否被占用。
+- 个人配置文件是否存在。
+
+## 5. 启动
+
+```bash
+npm start
+```
+
+启动后打开：
+
+```text
+http://localhost:5173
+```
+
+如果浏览器没有自动打开，就手动复制上面的地址。
+
+## 6. 填写个人文件
+
+初始化后会出现这些文件：
+
+```text
+cv.md
+config/profile.yml
+modes/_profile.md
+portals.yml
+article-digest.md
+```
+
+你需要填写：
 
 - `cv.md`：你的简历正文。
-- `config/profile.yml`：你的求职目标、城市、薪资、偏好。
-- `modes/_profile.md`：你的个人叙事、优势、谈薪策略。
-- `portals.yml`：你要关注的公司和岗位来源。
+- `config/profile.yml`：你的求职目标、城市、薪资和偏好。
+- `modes/_profile.md`：你的经历叙事、优势和谈薪策略。
+- `portals.yml`：你想关注的招聘来源。
+- `article-digest.md`：你的作品、文章、项目亮点。
 
-## 4. 启动本地 Web
+## 7. 连接 AI Agent
 
-在仓库根目录运行：
-
-```bash
-npm run dev
-```
-
-这会同时启动：
-
-- 后端：`http://127.0.0.1:3200`
-- 前端：通常是 `http://localhost:5173`
-
-打开前端后，页面会让你选择一个工作目录。这个目录会保存：
-
-- `data/`
-- `reports/`
-- `output/`
-- `interview-prep/`
-
-## 5. 检查后端是否正常
+推荐方式：
 
 ```bash
-curl http://127.0.0.1:3200/api/health
+npm start
+npm run mcp:setup
 ```
 
-正常结果类似：
+然后重启 Claude Code 或 Cursor。
 
-```json
-{"ok":true,"mode":"local"}
+MCP 可以理解成“网页和 AI Agent 之间的通信协议”。连接后，网页可以把评估、报告生成、面试准备等任务交给 Agent 执行。
+
+你也可以在网页右上角打开 AI 设置，复制提示词给你的 AI 助手，让它自动配置。
+
+## 8. 常用命令
+
+```bash
+npm run setup      # 初始化
+npm run doctor     # 检查环境
+npm start          # 启动本地 Web
+npm run agent      # 启动本地 Agent 连接器
+npm run mcp:setup  # 自动写入 MCP 配置
+npm run mcp:remove # 移除 MCP 配置
 ```
 
-## 6. 连接 AI Agent
+如果你全局安装了命令，也可以用：
 
-打开网页右上角的 AI 设置，复制页面给出的 MCP 连接提示词，发给你的本地 Agent。
+```bash
+zhicheng setup
+zhicheng doctor
+zhicheng start
+zhicheng agent
+```
 
-MCP 可以理解成“网页后端和 AI Agent 之间的通信协议”。连接后，网页可以把评估、面试准备等任务交给 Agent 执行。
+## 9. 数据安全提醒
 
-## 7. 浏览器采集
+不要提交这些真实个人数据：
 
-采集岗位前，先在本机 Chrome 登录招聘网站账号。系统通过本机 Chrome 的调试接口读取登录状态，不会在服务器保存你的招聘网站密码。
+- `cv.md`
+- `config/profile.yml`
+- `modes/_profile.md`
+- `article-digest.md`
+- `portals.yml`
+- `data/*`
+- `reports/*`
+- `output/*`
+- `interview-prep/*`
+- `jds/*`
 
-支持脚本见：
-
-- `scrapers/README.md`
-- `scrapers/51job/README.md`
-- `scrapers/liepin/README.md`
-- `scrapers/zhaopin/README.md`
-
-## 8. 注意事项
-
-- 不要提交 `cv.md`、`config/profile.yml`、`modes/_profile.md`、`data/`、`reports/`、`output/` 里的真实内容。
-- 如果你把仓库推到远程，即使远程是私有库，也建议只放系统代码和示例文件。
-- 本地版不包含云端登录、公共职位库、多用户数据库和云端部署配置。
+这些路径已经写进 `.gitignore`。

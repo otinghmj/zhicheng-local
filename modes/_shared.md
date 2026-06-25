@@ -1,11 +1,11 @@
-# System Context -- career-ops
+# System Context -- zhicheng
 
 <!-- ============================================================
      THIS FILE IS AUTO-UPDATABLE. Don't put personal data here.
 
      Your customizations go in modes/_profile.md (never auto-updated).
      This file contains system rules, scoring logic, and tool config
-     that improve with each career-ops release.
+     that improve with each zhicheng release.
      ============================================================ -->
 
 ## Sources of Truth

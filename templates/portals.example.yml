@@ -1,5 +1,5 @@
 # Portal Scanner Configuration
-# Used by /career-ops scan to discover new offers automatically.
+# Used by /zhicheng scan to discover new offers automatically.
 #
 # Strategy (3 levels):
 #   1. Playwright → careers_url of each company (real-time, reliable)

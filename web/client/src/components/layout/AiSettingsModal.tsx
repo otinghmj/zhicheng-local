@@ -11,7 +11,7 @@ function getMcpUrl() {
 
 function buildAgentPrompt() {
   const mcpUrl = getMcpUrl();
-  return `帮我连接一个 MCP Server。服务器名称为 "career-ops"，类型为 Streamable HTTP，URL 为 ${mcpUrl} 。如果你是 Claude Code，请在项目根目录的 .mcp.json 文件的 mcpServers 中添加 {"career-ops":{"url":"${mcpUrl}"}}；如果你是 Cursor，请在 ~/.cursor/mcp.json 中添加同样配置；其他 Agent 请按各自 MCP 配置方式添加。完成后提示我重启 Agent 以生效。`;
+  return `帮我连接一个 MCP Server。服务器名称为 "zhicheng"，类型为 Streamable HTTP，URL 为 ${mcpUrl} 。如果你是 Claude Code，请在项目根目录的 .mcp.json 文件的 mcpServers 中添加 {"zhicheng":{"url":"${mcpUrl}"}}；如果你是 Cursor，请在 ~/.cursor/mcp.json 中添加同样配置；其他 Agent 请按各自 MCP 配置方式添加。完成后提示我重启 Agent 以生效。`;
 }
 
 interface Props {

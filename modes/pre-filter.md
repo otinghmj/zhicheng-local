@@ -2,7 +2,7 @@
 
 ## 定位与职责
 
-介于**采集层**（job-scraper）和**分析层**（/career-ops pipeline）之间的轻量过滤器。
+介于**采集层**（job-scraper）和**分析层**（/zhicheng pipeline）之间的轻量过滤器。
 
 - **输入**：采集脚本产出的简易职位列表（无 JD），即 report.json 中的 `dedupJobs[]`
 - **输出**：通过初筛的职位写入 `data/pipeline.md`，过滤掉的记录原因
@@ -143,7 +143,7 @@ pre_filter:
 ### 方式 B：手动对已有 report.json 补跑
 
 ```
-/career-ops pre-filter --report output/hammerspoon/boss-rpa/AI应用工程师/report.json
+/zhicheng pre-filter --report output/hammerspoon/boss-rpa/AI应用工程师/report.json
 ```
 
 ---

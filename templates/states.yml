@@ -1,5 +1,5 @@
-# Career-Ops — Canonical States
-# Source of truth for career-ops (writer) and dashboard (reader).
+# 职程 — Canonical States
+# Source of truth for zhicheng (writer) and dashboard (reader).
 # Both systems MUST use these exact states.
 #
 # Rule: The status field in applications.md must contain EXACTLY

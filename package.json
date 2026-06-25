@@ -1,14 +1,23 @@
 {
-  "name": "career-ops-local",
+  "name": "zhicheng-local",
   "version": "1.0.0",
-  "description": "Local-first AI job search toolkit for Career-Ops China",
+  "description": "本地优先的 AI 求职工作台",
+  "bin": {
+    "zhicheng": "./bin/zhicheng.mjs"
+  },
   "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "start": "node scripts/start.mjs",
+    "agent": "node web/server/mcp-agent.mjs http://localhost:3200/mcp",
+    "mcp:setup": "node web/server/setup-mcp.mjs",
+    "mcp:remove": "node web/server/setup-mcp.mjs --remove",
     "pdf": "node generate-pdf.mjs",
     "boss:api": "node scrapers/shared/api-server.mjs",
     "51job:opencli": "node scrapers/51job/51job-opencli.mjs",
     "dev:server": "npm --prefix web/server run dev",
     "dev:client": "npm --prefix web/client run dev",
-    "dev": "concurrently -n server,client -c blue,green \"npm run dev:server\" \"npm run dev:client\""
+    "dev": "node scripts/start.mjs --dev"
   },
   "keywords": ["ai", "job-search", "claude-code", "career", "automation"],
   "author": "",

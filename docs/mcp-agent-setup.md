@@ -1,8 +1,8 @@
-# Career-Ops MCP Agent 连接指南
+# 职程 MCP Agent 连接指南
 
 ## 概述
 
-Career-Ops 支持通过 MCP（Model Context Protocol）协议连接外部 AI Agent，实现 Web UI 下发任务、Agent 自动执行的工作流。
+职程 支持通过 MCP（Model Context Protocol）协议连接外部 AI Agent，实现 Web UI 下发任务、Agent 自动执行的工作流。
 
 ## 连接步骤
 
@@ -23,7 +23,7 @@ cd web/server && npm start
 ```json
 {
   "mcpServers": {
-    "career-ops": {
+    "zhicheng": {
       "url": "http://localhost:3200/mcp"
     }
   }
@@ -37,7 +37,7 @@ cd web/server && npm start
 ```json
 {
   "mcpServers": {
-    "career-ops": {
+    "zhicheng": {
       "url": "http://localhost:3200/mcp"
     }
   }
@@ -113,6 +113,6 @@ cd web/server && npm start
 
 将以下提示词复制给你的 AI Agent，它会自动完成配置：
 
-> 帮我连接一个 MCP Server。服务器名称为 "career-ops"，类型为 Streamable HTTP，URL 为 `<你的服务地址>/mcp` 。如果你是 Claude Code，请在项目根目录的 .mcp.json 文件的 mcpServers 中添加 {"career-ops":{"url":"<URL>"}}；如果你是 Cursor，请在 ~/.cursor/mcp.json 中添加同样配置；其他 Agent 请按各自 MCP 配置方式添加。完成后提示我重启 Agent 以生效。
+> 帮我连接一个 MCP Server。服务器名称为 "zhicheng"，类型为 Streamable HTTP，URL 为 `<你的服务地址>/mcp` 。如果你是 Claude Code，请在项目根目录的 .mcp.json 文件的 mcpServers 中添加 {"zhicheng":{"url":"<URL>"}}；如果你是 Cursor，请在 ~/.cursor/mcp.json 中添加同样配置；其他 Agent 请按各自 MCP 配置方式添加。完成后提示我重启 Agent 以生效。
 
 本地开发时 URL 为 `http://localhost:3200/mcp`，部署后替换为实际域名。Web UI 中的一键连接提示词会自动使用当前访问地址。

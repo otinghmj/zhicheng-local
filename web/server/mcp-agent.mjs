@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Local MCP Agent — connects to career-ops MCP server,
+ * Local MCP Agent — connects to 职程 MCP server,
  * handles sampling requests (createMessage) by executing commands locally,
  * and polls for ops tasks as fallback.
  */
@@ -10,7 +10,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { CreateMessageRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
-const MCP_URL = process.argv[2] || 'https://touxian.buzz/mcp';
+const MCP_URL = process.argv[2] || 'http://localhost:3200/mcp';
 const POLL_INTERVAL_MS = 5_000;
 const RECONNECT_BASE_MS = 3_000;
 const RECONNECT_MAX_MS = 60_000;
@@ -172,7 +172,7 @@ async function connect() {
   const transport = new StreamableHTTPClientTransport(new URL(MCP_URL));
 
   client = new Client(
-    { name: 'local-mcp-agent', version: '1.0.0' },
+    { name: 'zhicheng-local-agent', version: '1.0.0' },
     { capabilities: { sampling: {} } },
   );
 

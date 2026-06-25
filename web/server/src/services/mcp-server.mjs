@@ -33,7 +33,7 @@ export async function executeAgentTask(task) {
 
 function createMcpServer() {
   const server = new McpServer(
-    { name: 'career-ops', version: '1.0.0' },
+    { name: 'zhicheng', version: '1.0.0' },
     { capabilities: { logging: {}, sampling: {} } },
   );
 

@@ -13,7 +13,7 @@
 
 ## 当前默认入口流程（必须优先执行）
 
-当用户执行 `/career-ops scan` 时，默认按下面流程走：
+当用户执行 `/zhicheng scan` 时，默认按下面流程走：
 
 1. **读取用户资料**
    - `cv.md`
@@ -66,15 +66,15 @@
    - 同步写入 `data/scan-history.tsv`
 
 8. **提示下一步**
-   - 告诉用户可以运行 `/career-ops pipeline`
+   - 告诉用户可以运行 `/zhicheng pipeline`
    - pipeline 后续会做：初评打分 → 高分岗位拿详情 JD → 深度评估 → 报告/PDF/追踪
 
 ### 例外：用户已经给出明确方向和筛选条件
 
-如果用户调用 `/career-ops scan` 时已经明确给出方向和筛选条件，例如：
+如果用户调用 `/zhicheng scan` 时已经明确给出方向和筛选条件，例如：
 
 ```text
-/career-ops scan 方向：SQE；城市：佛山；经验：3-10年；学历：大专以上；排除实习/外包
+/zhicheng scan 方向：SQE；城市：佛山；经验：3-10年；学历：大专以上；排除实习/外包
 ```
 
 则可以跳过“方向发散”和“方向选择”，但仍然必须展示即将执行的筛选条件，并等待用户确认后再采集。
@@ -281,7 +281,7 @@ Nuevas añadidas a pipeline.md: N
   + {company} | {title} | {query_name}
   ...
 
-→ Ejecuta /career-ops pipeline para evaluar las nuevas ofertas.
+→ Ejecuta /zhicheng pipeline para evaluar las nuevas ofertas.
 ```
 
 ## Gestión de careers_url

@@ -8,7 +8,7 @@ class FakeWatcher extends EventEmitter {
   async close() {}
 }
 
-const root = '/tmp/career-ops-watcher-test';
+const root = '/tmp/zhicheng-watcher-test';
 const instances = [];
 
 function setup(options = {}) {

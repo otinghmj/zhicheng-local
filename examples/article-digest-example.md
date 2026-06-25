@@ -1,6 +1,6 @@
 # Article Digest -- Proof Points
 
-Compact proof points from portfolio projects. Read by career-ops at evaluation time.
+Compact proof points from portfolio projects. Read by zhicheng at evaluation time.
 
 ---
 

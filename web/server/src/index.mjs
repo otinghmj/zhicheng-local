@@ -19,7 +19,7 @@ const PORT = Number(process.env.PORT ?? process.env.SERVER_PORT ?? 3200);
 
 const watcher = startFileWatcher();
 const server = app.listen(PORT, HOST, () => {
-  console.log(`Career-Ops Local server listening on http://${HOST}:${PORT} (本地模式)`);
+  console.log(`职程本地服务已启动：http://${HOST}:${PORT}`);
 });
 
 async function shutdown() {

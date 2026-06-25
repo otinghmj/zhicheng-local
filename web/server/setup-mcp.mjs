@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 一键配置 AI Agent 连接 career-ops MCP Server
+ * 一键配置 AI Agent 连接职程 MCP Server
  *
  * 用法:
  *   node setup-mcp.mjs                  # 自动检测 Agent 类型
@@ -33,6 +33,8 @@ const param = (name) => { const i = args.indexOf(`--${name}`); return i !== -1 &
 const port = param('port') || process.env.SERVER_PORT || '3200';
 const mcpUrl = `http://localhost:${port}/mcp`;
 const remove = flag('remove');
+const serverName = 'zhicheng';
+const legacyServerName = 'zhicheng';
 
 const AGENTS = {
   claude: {
@@ -74,26 +76,28 @@ async function configureAgent(agentKey) {
   const config = await readJsonFile(agent.configPath);
 
   if (remove) {
-    if (config.mcpServers?.['career-ops']) {
-      delete config.mcpServers['career-ops'];
+    if (config.mcpServers?.[serverName] || config.mcpServers?.[legacyServerName]) {
+      delete config.mcpServers[serverName];
+      delete config.mcpServers[legacyServerName];
       if (Object.keys(config.mcpServers).length === 0) delete config.mcpServers;
       await writeFile(agent.configPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
-      console.log(`✅ 已从 ${agent.name} 移除 career-ops MCP 配置`);
+      console.log(`✅ 已从 ${agent.name} 移除职程 MCP 配置`);
       console.log(`   ${agent.configPath}`);
     } else {
-      console.log(`ℹ️  ${agent.name} 中没有 career-ops MCP 配置`);
+      console.log(`ℹ️  ${agent.name} 中没有职程 MCP 配置`);
     }
     return;
   }
 
   config.mcpServers = config.mcpServers || {};
 
-  const existed = !!config.mcpServers['career-ops'];
-  config.mcpServers['career-ops'] = { url: mcpUrl };
+  const existed = !!config.mcpServers[serverName];
+  delete config.mcpServers[legacyServerName];
+  config.mcpServers[serverName] = { url: mcpUrl };
 
   await writeFile(agent.configPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
 
-  console.log(`✅ ${existed ? '更新' : '添加'} career-ops MCP → ${agent.name}`);
+  console.log(`✅ ${existed ? '更新' : '添加'} 职程 MCP → ${agent.name}`);
   console.log(`   配置文件: ${agent.configPath}`);
   console.log(`   MCP URL:  ${mcpUrl}`);
   console.log(`   👉 请重启 ${agent.name} 使配置生效`);

@@ -1,15 +1,15 @@
 openapi: '3.0.3'
 # FROZEN: 2026-06-11
 info:
-  title: Career-Ops Local Web API
+  title: 职程本地版 Web API
   version: '1.2'
   description: |
-    Career-Ops Local 可视化层的 RESTful API 契约。
+    职程本地版可视化层的 RESTful API 契约。
     本仓库是本地模式独立版，不包含云端登录、JWT、公共职位库或服务端多用户数据库。
     后端读写现有 Markdown/YAML/TSV 文件系统，不引入数据库。
     所有写操作使用文件级排他锁防止竞态。
   contact:
-    name: Career-Ops
+    name: 职程
   license:
     name: MIT
 
