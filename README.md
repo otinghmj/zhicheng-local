@@ -1,65 +1,67 @@
 # 职程
 
-职程是一个本地优先的 AI 求职工作台。
+职程是一个跑在本机的 AI 求职工作台。
 
-人话解释：它帮你把找工作这件事整理成一条清晰流程：采集岗位、筛选岗位、评估匹配度、生成报告、管理投递进度、准备面试。默认数据都留在你自己的电脑里。
+它不替你投简历，也不承诺帮你找到工作。它做的是另一件更实际的事：把岗位、简历、评估报告、投递状态和面试材料放到一套流程里，别让找工作变成一堆散落的链接和文档。
+
+数据默认留在你的电脑上。你可以自己选工作目录，报告、PDF、投递记录都会写到那里。
+
+## 你可以用它做什么
+
+- 把招聘网站上的岗位采集到待处理队列。
+- 让 AI 根据你的简历和目标岗位做匹配度评估。
+- 为每个岗位生成一份 Markdown 报告。
+- 需要时生成定制版 PDF 简历。
+- 维护投递跟踪表。
+- 整理面试准备材料和故事库。
+- 通过 MCP 连接 Claude Code、Cursor、Codex 这类本地 Agent。
+
+MCP 是一种让网页后端和 AI Agent 通信的协议。你不用先理解它，先知道一件事就够了：连接后，网页可以把“评估这个岗位”“生成面试准备”这类任务交给本地 Agent 做。
 
 ## 适合谁
 
-- 正在找工作，想系统管理岗位和投递进度的人。
-- 想用 AI 帮忙看 JD、改简历、准备面试的人。
-- 不想把简历、投递记录、岗位分析报告上传到陌生云服务的人。
-- 想自己掌控数据和模型配置的人。
+适合想自己掌控求职数据的人。
 
-## 它能做什么
+如果你只是偶尔投几个岗位，用表格可能就够了。
 
-- 采集招聘网站岗位。
-- 把岗位放进待处理队列。
-- 用 AI 评估岗位和你的简历是否匹配。
-- 生成 Markdown 评估报告。
-- 生成定制 PDF 简历。
-- 维护投递跟踪表。
-- 整理面试准备材料。
-- 通过 MCP 连接本地 AI Agent。
+如果你每天看很多 JD，想系统比较岗位、改简历、记录进度，这个工具会更有用。
 
-MCP 可以理解成“网页和 AI 助手之间的通信协议”。连接后，网页可以把评估、整理、生成报告等任务交给你的本地 AI 助手执行。
+## 安装
 
-## 快速开始
+先准备好：
 
-先确认你已经安装：
-
-- Node.js 18 或更高版本。
-- Google Chrome。
-- Git。
+- Node.js 18 或更高版本
+- Git
+- Google Chrome
 
 然后运行：
 
 ```bash
-git clone <你的仓库地址> zhicheng
+git clone https://github.com/otinghmj/zhicheng-local.git zhicheng
 cd zhicheng
 npm run setup
 npm start
 ```
 
-启动后打开：
+打开：
 
 ```text
 http://localhost:5173
 ```
 
-第一次打开页面时，选择一个本地工作目录。之后报告、投递记录、PDF、面试材料都会保存在这个目录里。
+第一次打开时，页面会让你选择一个本地工作目录。建议新建一个空文件夹专门放求职数据。
 
 ## 常用命令
 
 ```bash
-npm run setup      # 安装依赖，并创建个人配置文件
-npm run doctor     # 检查本机环境是否可运行
-npm start          # 启动本地 Web
+npm run setup      # 安装依赖，创建个人配置文件
+npm run doctor     # 检查本机环境
+npm start          # 启动本地网页
 npm run agent      # 启动本地 Agent 连接器
-npm run mcp:setup  # 自动写入 Claude Code / Cursor 的 MCP 配置
+npm run mcp:setup  # 写入 Claude Code / Cursor 的 MCP 配置
 ```
 
-如果你把命令安装到了全局，也可以使用：
+如果你把命令装到了全局，也可以这样用：
 
 ```bash
 zhicheng setup
@@ -68,15 +70,15 @@ zhicheng start
 zhicheng agent
 ```
 
-如果没有全局安装，也可以在项目目录里运行：
+没装全局命令也没关系，在项目目录里可以直接运行：
 
 ```bash
 npx . start
 ```
 
-## 个人文件
+## 需要你自己填写的文件
 
-`npm run setup` 会帮你创建这些文件：
+`npm run setup` 会创建这些文件：
 
 ```text
 cv.md
@@ -86,54 +88,73 @@ portals.yml
 article-digest.md
 ```
 
-你需要手动填写：
+大概意思如下：
 
-- `cv.md`：你的简历。
-- `config/profile.yml`：你的目标岗位、城市、薪资、偏好。
-- `modes/_profile.md`：你的个人优势、经历叙事、谈薪策略。
-- `portals.yml`：你想关注的招聘来源和公司。
-- `article-digest.md`：你的项目、作品、文章亮点。
+- `cv.md`：你的简历正文。
+- `config/profile.yml`：目标岗位、城市、薪资、偏好。
+- `modes/_profile.md`：你的优势、经历叙事、谈薪策略。
+- `portals.yml`：你想关注的招聘来源。
+- `article-digest.md`：项目、文章、作品亮点。
 
-## 数据安全
+这些文件一开始只是模板。要让评估结果靠谱，你需要认真填。
 
-默认不会提交这些真实数据：
+## 数据放在哪里
 
-- `cv.md`
-- `config/profile.yml`
-- `modes/_profile.md`
-- `article-digest.md`
-- `portals.yml`
-- `data/*`
-- `reports/*`
-- `output/*`
-- `interview-prep/*`
-- `jds/*`
-
-这些路径已经写入 `.gitignore`。`.gitignore` 可以理解成“告诉 Git 哪些文件不要上传”的清单。
-
-## 目录结构
+常见目录：
 
 ```text
-web/client/        浏览器页面
-web/server/        本地后端服务
-scrapers/          岗位采集脚本
-modes/             AI 任务提示词
-templates/         简历模板和示例配置
-data/              投递和任务数据
-reports/           评估报告
-output/            PDF 输出
+data/              投递记录、待处理队列、采集历史
+reports/           岗位评估报告
+output/            生成的 PDF
 interview-prep/    面试准备材料
-docs/              详细文档
+jds/               保存下来的 JD
 ```
 
-## 本地运行方式
+这些真实数据默认不会提交到 Git。`.gitignore` 已经排除了：
 
-职程默认会启动两个服务：
+```text
+cv.md
+config/profile.yml
+modes/_profile.md
+article-digest.md
+portals.yml
+data/*
+reports/*
+output/*
+interview-prep/*
+jds/*
+```
 
-- 后端：`http://127.0.0.1:3200`
-- 前端：`http://localhost:5173`
+简单说：代码可以上传，个人数据不要上传。
 
-如果启动失败，先运行：
+## 连接 AI Agent
+
+推荐先启动网页：
+
+```bash
+npm start
+```
+
+再配置 MCP：
+
+```bash
+npm run mcp:setup
+```
+
+然后重启 Claude Code 或 Cursor。
+
+你也可以在网页右上角打开 AI 设置，复制里面的提示词，让你的 Agent 自己写配置。
+
+## 本地服务
+
+启动后会有两个地址：
+
+```text
+后端：http://127.0.0.1:3200
+前端：http://localhost:5173
+```
+
+如果启动失败，先跑：
 
 ```bash
 npm run doctor
@@ -141,21 +162,29 @@ npm run doctor
 
 它会检查 Node.js、npm、Chrome、依赖目录、端口和个人配置文件。
 
-## 连接 AI Agent
+## 采集岗位前要知道
 
-推荐流程：
+岗位采集依赖你本机 Chrome 里的登录状态。也就是说，你要先在 Chrome 里登录对应招聘网站。
 
-```bash
-npm start
-npm run mcp:setup
+这个项目不会保存你的招聘网站密码。
+
+## 项目目录
+
+```text
+web/client/        前端页面
+web/server/        本地后端
+scrapers/          岗位采集脚本
+modes/             AI 任务提示词
+templates/         简历模板和示例配置
+docs/              详细文档
 ```
 
-然后重启 Claude Code 或 Cursor。
+## 现在还不是什么
 
-也可以在网页右上角打开 AI 设置，把提示词复制给你的 AI 助手，让它帮你配置 MCP。
+职程不是云端招聘平台。
 
-## 注意
+不是自动投递机器人。
 
-- 这个项目是本地优先工具，不是云端 SaaS。
-- 招聘网站采集依赖你自己电脑上的 Chrome 登录状态。
-- 运行 AI 任务时，是否调用外部模型取决于你配置的 AI Agent 和模型服务。
+也不是“装上就能帮你找到工作”的黑盒工具。
+
+它更像一个本地工作台：把你已经在做的求职动作整理好，再把适合交给 AI 的部分交出去。
