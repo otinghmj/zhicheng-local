@@ -31,16 +31,16 @@ MCP 是一种让网页后端和 AI Agent 通信的协议。你不用先理解它
 
 金额随意，1 元也是对开源的鼓励。欢迎在赞赏时备注留言
 
-<img width="1145" height="753" alt="image" src="https://github.com/user-attachments/assets/6923ddb7-2c02-4b03-a4b5-f9c6192af34a" />
+<img width="500" height="350" alt="image" src="https://github.com/user-attachments/assets/6923ddb7-2c02-4b03-a4b5-f9c6192af34a" />
 微信赞赏	
-<img width="1132" height="1174" alt="image" src="https://github.com/user-attachments/assets/b01fb05f-0a98-417c-8cc4-cfa034861fb2" />
+<img width="500" height="350" alt="image" src="https://github.com/user-attachments/assets/b01fb05f-0a98-417c-8cc4-cfa034861fb2" />
 支付宝赞赏
 
 
 ## 交流与反馈
 
 群交流：有什么AI方面想要沟通的，项目有问题反馈，想求助技术问题还是分享折腾心得，这里都欢迎你。群里主打互助交流和灵感碰撞，入群请先看群公告；提问时描述清楚问题、附上截图，群友有空就会帮忙，互相帮助迭代才能走得更快。
-<img width="930" height="1446" alt="0b6dbc181842e41caef4b2b3d653577e" src="https://github.com/user-attachments/assets/b3c65ee4-48d2-4e50-b543-d29368c6d2ea" />
+<img width="500" height="700" alt="0b6dbc181842e41caef4b2b3d653577e" src="https://github.com/user-attachments/assets/b3c65ee4-48d2-4e50-b543-d29368c6d2ea" />
 
 
 
