@@ -34,6 +34,27 @@ MCP 是一种让网页后端和 AI Agent 通信的协议。你不用先理解它
 
 如果你每天看很多 JD，想系统比较岗位、改简历、记录进度，这个工具会更有用。
 
+## 💬 AI 交流群
+
+有什么 AI 相关的话题想交流，或者：
+
+- 💡 想讨论 AI 应用、工作流或项目思路
+- 🛠️ 遇到项目 Bug、开发问题需要求助
+- 🚀 分享自己的折腾经验、踩坑心得
+- 🤝 寻找合作伙伴，一起做有意思的项目
+
+都欢迎加入交流群！
+
+> 📌 入群后请先阅读群公告。  
+> 🙋 提问时尽量描述清楚问题，并附上截图或报错信息，方便大家快速定位。  
+> 🌱 群里主打互助交流、经验分享和灵感碰撞，希望大家共同成长、一起迭代。
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/22179bb3-17a9-474c-b164-b6a1b2e48161" alt="AI交流群" width="320" />
+</p>
+
+<p align="center"><b>扫码加入 AI 交流群</b></p>
+
 ## 如果项目对你有帮助？欢迎能请杯咖啡犒劳一下
 
 
@@ -50,13 +71,6 @@ MCP 是一种让网页后端和 AI Agent 通信的协议。你不用先理解它
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <b>支付宝赞赏</b>
 </p>
-
-
-## 交流与反馈
-
-群交流：有什么AI方面想要沟通的，项目有问题反馈，想求助技术问题还是分享折腾心得，这里都欢迎你。群里主打互助交流和灵感碰撞，入群请先看群公告；提问时描述清楚问题、附上截图，群友有空就会帮忙，互相帮助迭代才能走得更快。
-<img width="500" height="400" alt="0b6dbc181842e41caef4b2b3d653577e" src="https://github.com/user-attachments/assets/b3c65ee4-48d2-4e50-b543-d29368c6d2ea" />
-
 
 
 ## 安装
