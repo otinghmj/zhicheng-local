@@ -1,3 +1,11 @@
+免责声明：
+
+大家请以学习为目的使用本仓库⚠️⚠️⚠️⚠️，[爬虫违法违规的案件](https://github.com/HiddenStrawberry/Crawler_Illegal_Cases_In_China)
+
+本仓库的所有内容仅供学习和参考之用，禁止用于商业用途。任何人或组织不得将本仓库的内容用于非法用途或侵犯他人合法权益。本仓库所涉及的爬虫技术仅用于学习和研究，不得用于对其他平台进行大规模爬虫或其他非法行为。对于因使用本仓库内容而引起的任何法律责任，本仓库不承担任何责任。使用本仓库的内容即表示您同意本免责声明的所有条款和条件。
+
+点击查看更为详细的免责声明。[点击跳转](https://github.com/NanmiCoder/MediaCrawler#disclaimer)
+
 # 职程
 
 职程是一个跑在本机的 AI 求职工作台。
@@ -31,10 +39,17 @@ MCP 是一种让网页后端和 AI Agent 通信的协议。你不用先理解它
 
 金额随意，1 元也是对开源的鼓励。欢迎在赞赏时备注留言
 
-<img width="300" height="250" alt="image" src="https://github.com/user-attachments/assets/6923ddb7-2c02-4b03-a4b5-f9c6192af34a" />
-微信赞赏	
-<img width="300" height="250" alt="image" src="https://github.com/user-attachments/assets/b01fb05f-0a98-417c-8cc4-cfa034861fb2" />
-支付宝赞赏
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/02a9f7cf-8175-4bfe-b37d-73604261b6df" alt="微信赞赏" width="320" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="https://github.com/user-attachments/assets/311774c4-6c1e-4c3f-9da7-965ddd9fcd18" alt="支付宝赞赏" width="320" />
+</p>
+
+<p align="center">
+  <b>微信赞赏</b>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <b>支付宝赞赏</b>
+</p>
 
 
 ## 交流与反馈
