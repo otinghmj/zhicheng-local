@@ -7,9 +7,13 @@
 | `51job-opencli.mjs` | **主采集脚本**。调用 `opencli 51job search`，无需 Hammerspoon/CDP，直接复用 Chrome 登录态。输出格式与旧脚本完全兼容 |
 | `51job-rpa-to-pipeline.mjs` | 将 report.json 中的 `dedupJobs` 写入 `data/pipeline.md`，基于 51job URL 去重 |
 
+> 已退役的 Hammerspoon 脚本（`51job-hs-rpa.mjs`、`51job_hammerspoon_rpa.lua`）已迁出本工具，归档在 `<项目外归档目录>/51job/`。
+
 ## 技术说明
 
 `51job-opencli.mjs` 基于 [OpenCLI](https://github.com/jackwener/opencli)：Chrome Browser Bridge extension + 本地 daemon，通过 `withCredentials: true` 的页内 XHR 复用浏览器登录态，无需 Hammerspoon RPA 或 CDP。
+
+经 3 轮稳定性测试验证：salary 填充率 100%，无风控信号，平均采集耗时 ~7s/30条。
 
 ## 前置条件
 
@@ -51,9 +55,9 @@ node scrapers/51job/51job-opencli.mjs \
 
 ## 依赖
 
-- OpenCLI
-- Chrome Browser Bridge 扩展
-- 已登录 we.51job.com 的 Chrome
+- `scrapers/shared/api-server.mjs`（新增 `/api/51job/search/getPage` 端点，复用端口 3337）
+- Hammerspoon（macOS 必需）
+- Chrome 以 `--remote-debugging-port=9223` 启动（与 BOSS/智联共享）
 
 ## 输出
 

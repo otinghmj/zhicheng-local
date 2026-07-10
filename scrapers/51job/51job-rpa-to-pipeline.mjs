@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 // 前程无忧（51job）采集报告 → pipeline.md 写入器
 //
-// 使用 51job URL 格式做去重。
+// 与 boss-rpa-to-pipeline.mjs 结构相同，但使用 51job URL 格式做去重。
 
 import fs   from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { PIPELINE_PATH } from "../shared/paths.mjs";
 
 const __dirname      = path.dirname(fileURLToPath(import.meta.url));
-const DEFAULT_PIPELINE = path.resolve("data/pipeline.md");
+const DEFAULT_PIPELINE = PIPELINE_PATH;
 
 function formatPendingLine(job) {
   const location = [job.cityName, job.areaDistrict].filter(Boolean).join("·");

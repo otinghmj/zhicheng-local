@@ -4,12 +4,16 @@
  *
  * 数据来源：
  *   51job   — https://js.51jobcdn.com/in/js/2016/layer/area_array_c.js（GBK，3367城市）
+ *   zhaopin — https://fe-api.zhaopin.com/c/i/city（487城市）
+ *   boss    — https://www.zhipin.com/wapi/zpCommon/data/city.json（374城市）
  *   liepin  — https://www.liepin.com/citylist/ 及各城市页面中的 dqCode
  *
  * 用法（ESM）：
  *   import { getCity, listCities, PLATFORMS } from '../shared/city-codes.mjs';
+ *   getCity('boss', '佛山')     // → '101280800'
+ *   getCity('zhaopin', '广州')  // → '763'
  *   getCity('51job', '深圳')    // → '040000'
- *   listCities('liepin')        // → [{ name, code }, ...]
+ *   listCities('boss')          // → [{ name, code }, ...]
  */
 
 import { createRequire } from 'node:module';
@@ -27,11 +31,11 @@ function getData() {
 }
 
 /** 支持的平台标识 */
-export const PLATFORMS = ['51job', 'liepin'];
+export const PLATFORMS = ['51job', 'zhaopin', 'boss', 'liepin'];
 
 /**
  * 根据城市名称查询对应平台的城市码。
- * @param {'51job'|'liepin'} platform  平台标识
+ * @param {'51job'|'zhaopin'|'boss'|'liepin'} platform  平台标识
  * @param {string} cityName                     城市名（如 '佛山'）
  * @returns {string|null}                       城市码字符串，未找到返回 null
  */
@@ -43,7 +47,7 @@ export function getCity(platform, cityName) {
 
 /**
  * 列出指定平台的所有城市。
- * @param {'51job'|'liepin'} platform
+ * @param {'51job'|'zhaopin'|'boss'|'liepin'} platform
  * @returns {{ name: string, code: string }[]}
  */
 export function listCities(platform) {
@@ -56,7 +60,7 @@ export function listCities(platform) {
 
 /**
  * 模糊搜索城市（包含匹配）。
- * @param {'51job'|'liepin'} platform
+ * @param {'51job'|'zhaopin'|'boss'|'liepin'} platform
  * @param {string} query  搜索关键词
  * @returns {{ name: string, code: string }[]}
  */
@@ -67,7 +71,7 @@ export function searchCity(platform, query) {
 /**
  * 跨平台查询：返回某城市在所有平台的城市码（找不到显示 null）。
  * @param {string} cityName
- * @returns {{ '51job': string|null, liepin: string|null }}
+ * @returns {{ '51job': string|null, zhaopin: string|null, boss: string|null, liepin: string|null }}
  */
 export function getCityAllPlatforms(cityName) {
   return Object.fromEntries(PLATFORMS.map(p => [p, getCity(p, cityName)]));
@@ -125,9 +129,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
   node city-codes.mjs search <platform> <query>   模糊搜索
   node city-codes.mjs list <platform>             列出城市（前10条）
 
-平台：51job | liepin
+平台：51job | zhaopin | boss | liepin
 
 示例：
+  node city-codes.mjs get boss 佛山
   node city-codes.mjs get liepin 佛山
   node city-codes.mjs all 广州
   node city-codes.mjs search 51job 苏

@@ -15,7 +15,7 @@
 //   node scrapers/liepin/liepin-dom.mjs [--query SQE] [--city 010] [--max-pages 10] [--skip-pipeline]
 //
 // 优势（对比旧 liepin-api.mjs）：
-//   - 不依赖额外 API 中间层
+//   - 不再依赖 api-server 中间层
 //   - 绕过 security.min.js + acw_tc WAF 对 API 的拦截
 //   - 利用 Chrome 已登录状态，无需单独管理 cookie
 //
@@ -30,8 +30,11 @@ import process from "node:process";
 import { setTimeout as sleep } from "node:timers/promises";
 import { getCity } from "../shared/city-codes.mjs";
 import { ensureChrome } from "../shared/ensure-chrome.mjs";
+import { getLoginStatus } from "../shared/check-login.mjs";
+import { outPath as scraperOutPath } from "../shared/paths.mjs";
+import { pageDelay, interQueryMs } from "../shared/rate-limit.mjs";
 
-let CDP_URL = String(process.env.CDP_URL || process.env.BOSS_CDP_URL || "http://127.0.0.1:9223");
+let CDP_URL = String(process.env.CDP_URL || process.env.SCRAPER_CDP_URL || process.env.BOSS_CDP_URL || "http://127.0.0.1:9223");
 
 function resolveCity(input) {
   if (!input) return '410';
@@ -42,11 +45,10 @@ function resolveCity(input) {
 }
 
 // ── 并发防护：文件锁 + 查询间冷却（与 liepin-api.mjs 共享同一把锁） ────────────
-const LOCK_FILE       = path.resolve("output/liepin/api/.lock");
-const COOLDOWN_FILE   = path.resolve("output/liepin/api/.last-query-ts");
-const INTER_QUERY_MS  = Number(process.env.LIEPIN_INTER_QUERY_MS   || 180_000);
-const PAGE_PAUSE_MS   = Number(process.env.SCRAPER_PAGE_PAUSE_MS   ||   8_000);
-const PAGE_JITTER_MS  = Number(process.env.SCRAPER_PAGE_JITTER_MS  ||   7_000);
+const LOCK_FILE       = scraperOutPath("liepin/api/.lock");
+const COOLDOWN_FILE   = scraperOutPath("liepin/api/.last-query-ts");
+const INTER_QUERY_MS  = interQueryMs("liepin", "LIEPIN_INTER_QUERY_MS"); // 默认来自 RATE_POLICY.liepin
+// 页间间隔已统一到 rate-limit.mjs 的 pageDelay('liepin')（env SCRAPER_PAGE_PAUSE_MS/JITTER 仍可覆盖）
 const LOCK_TIMEOUT_MS = Number(process.env.LIEPIN_LOCK_TIMEOUT_MS  || 600_000);
 
 async function acquireLock(query) {
@@ -159,6 +161,20 @@ async function navigateAndWait(wsUrl, url, waitMs = 8000) {
   await sleep(waitMs);
 }
 
+/**
+ * 轮询等待职位卡片渲染出现（替代死等，防冷启动/慢网络下固定等待不足导致漏抓）。
+ * 卡片一出现就立即返回；最多等 timeoutMs。eval 早期可能因 context 未就绪抛错，吞掉重试。
+ */
+async function waitForCards(wsUrl, { timeoutMs = 20000, intervalMs = 800 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const n = await evalInPage(wsUrl, `document.querySelectorAll('.job-card-pc-container').length`).catch(() => 0);
+    if (Number(n) > 0) return Number(n);
+    await sleep(intervalMs);
+  }
+  return 0;
+}
+
 /** 找到或创建猎聘相关的 tab，返回 { targetId, wsUrl } */
 async function findOrCreateLiepinTab(cdpUrl) {
   const pages = await getPages(cdpUrl);
@@ -263,7 +279,7 @@ function dedup(jobs) {
 
 // ── 参数解析 ──────────────────────────────────────────────────────────────────
 function parseArgs(argv) {
-  const out = { query: "SQE", city: "010", maxPages: 10, skipPipeline: false };
+  const out = { query: "", city: "410", maxPages: 10, skipPipeline: false }; // city 默认全国
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--query")         { out.query       = argv[++i] || out.query; continue; }
@@ -276,6 +292,7 @@ function parseArgs(argv) {
     }
     throw new Error(`Unknown argument: ${arg}`);
   }
+  if (!out.query) throw new Error("必须指定 --query <关键词>");
   return out;
 }
 
@@ -288,6 +305,12 @@ async function main() {
   const activeCdp = await ensureChrome({ scriptName: "liepin-dom", cdpUrl: CDP_URL, exitOnFail: true });
   if (activeCdp) CDP_URL = activeCdp;
 
+  // 猎聘匿名可搜——不硬拦，但未登录时给非阻塞提示（结果可能不全/字段缺失）
+  const login = await getLoginStatus("liepin", { cdpUrl: CDP_URL }).catch(() => null);
+  if (login?.supported && login.loggedIn === false) {
+    console.error(`[liepin-dom] ⚠️  猎聘未登录——匿名可搜但结果可能不全。如需完整结果，请在 Chrome 中登录猎聘后重跑。`);
+  }
+
   // ── 串行化保障 ─────────────────────────────────────────────────────────────
   await acquireLock(options.query);
   process.on("exit",    releaseLockSync);
@@ -297,7 +320,7 @@ async function main() {
   await waitCooldown();
   console.error(`[liepin-dom] 🔒 获锁+冷却完毕，开始搜索："${options.query}" (city=${cityCode})`);
 
-  const outDir  = path.resolve("output/liepin/api", options.query.toLowerCase().replace(/\s+/g, "-"), cityCode);
+  const outDir  = scraperOutPath("liepin/api", options.query.toLowerCase().replace(/\s+/g, "-"), cityCode);
   const outPath = path.join(outDir, "report.json");
   await fs.mkdir(outDir, { recursive: true });
 
@@ -308,7 +331,7 @@ async function main() {
 
   for (let page = 0; page < options.maxPages; page++) {
     if (page > 0) {
-      const pause = PAGE_PAUSE_MS + Math.random() * PAGE_JITTER_MS;
+      const pause = pageDelay("liepin");
       console.error(`[liepin-dom] ⏳ 页间等待 ${(pause/1000).toFixed(1)}s...`);
       await sleep(pause);
     }
@@ -317,8 +340,8 @@ async function main() {
     console.error(`[liepin-dom] 📄 导航到 p${page}: ${searchUrl}`);
     await navigateAndWait(wsUrl, searchUrl, 5000);
 
-    // 额外等待 JS 渲染完成
-    await sleep(2000);
+    // 轮询等职位卡片渲染出现（替代死等 2s，冷启动/慢网络下最多等 20s，卡片一出现即继续）
+    await waitForCards(wsUrl);
 
     const rawResult = await evalInPage(wsUrl, EXTRACT_SEARCH_DOM);
     if (!rawResult) {
@@ -379,7 +402,6 @@ async function main() {
     reportPath:  outPath,
     dedupCount:  allJobs.length,
     rawJobCount: allRawJobs.length,
-    dedupJobs:   allJobs,
   }));
 
   await releaseLock();

@@ -13,6 +13,10 @@
     }
   },
   "docFiles": {
-    "sharedReadme": "scrapers/shared/README.md"
+    "sharedReadme": "scrapers/shared/README.md",
+    "coreIndex": "项目说明/核心文件索引.md",
+    "dirStructure": "项目说明/目录结构.md",
+    "skillBase": "~/.claude/skills/job-scraper/SKILL.md",
+    "skillRefsDir": "~/.claude/skills/job-scraper/"
   }
 }

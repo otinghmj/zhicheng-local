@@ -55,6 +55,7 @@ async function main() {
 
   // 读取所有文档文件（一次性，避免重复 IO）
   const docs = {};
+  const missingDocs = new Set(); // 缺失的文档 key——分发场景下项目级文档可不存在，降级为警告
   for (const [key, relPath] of Object.entries(docFiles)) {
     if (key === "skillRefsDir") continue;
     try {
@@ -63,6 +64,7 @@ async function main() {
       console.log(`${YELLOW}⚠  文档文件不存在，跳过: ${relPath}${RESET}`);
       warnings++;
       docs[key] = "";
+      missingDocs.add(key);
     }
   }
 
@@ -101,6 +103,51 @@ async function main() {
       errors++; platformOk = false;
     } else {
       console.log(`  ${GREEN}✓ scrapers/shared/README.md${RESET}`);
+    }
+
+    // 4. 项目说明/核心文件索引.md（项目级文档，分发场景可缺失→已在加载阶段警告，跳过检查）
+    if (!missingDocs.has("coreIndex")) {
+      if (!contains(docs.coreIndex, scriptBasename)) {
+        console.log(`  ${RED}✗ 项目说明/核心文件索引.md 未引用 ${scriptBasename}${RESET}`);
+        errors++; platformOk = false;
+      } else {
+        console.log(`  ${GREEN}✓ 项目说明/核心文件索引.md${RESET}`);
+      }
+    }
+
+    // 5. 项目说明/目录结构.md（同上，项目级文档，缺失时降级跳过）
+    if (!missingDocs.has("dirStructure")) {
+      if (!contains(docs.dirStructure, scriptBasename)) {
+        console.log(`  ${RED}✗ 项目说明/目录结构.md 未引用 ${scriptBasename}${RESET}`);
+        errors++; platformOk = false;
+      } else {
+        console.log(`  ${GREEN}✓ 项目说明/目录结构.md${RESET}`);
+      }
+    }
+
+    // 6. skill references/{platform}.md
+    if (cfg.skillRef) {
+      const skillRefPath = docFiles.skillRefsDir + cfg.skillRef;
+      if (!await fileExists(skillRefPath)) {
+        console.log(`  ${YELLOW}⚠  skill 参考文件不存在: ${skillRefPath}${RESET}`);
+        warnings++;
+      } else {
+        const content = await readText(skillRefPath);
+        if (!contains(content, scriptBasename)) {
+          console.log(`  ${RED}✗ ${skillRefPath} 未引用 ${scriptBasename}${RESET}`);
+          errors++; platformOk = false;
+        } else {
+          console.log(`  ${GREEN}✓ skill/${cfg.skillRef}${RESET}`);
+        }
+      }
+    }
+
+    // 7. SKILL.md 能力表 mode 列（宽松检查：mode 字符串出现在 SKILL.md 里即可）
+    if (!contains(docs.skillBase, cfg.mode)) {
+      console.log(`  ${YELLOW}⚠  SKILL.md 能力表未找到 mode="${cfg.mode}"（需手动核对）${RESET}`);
+      warnings++;
+    } else {
+      console.log(`  ${GREEN}✓ SKILL.md 含 mode "${cfg.mode}"${RESET}`);
     }
 
     if (platformOk) {

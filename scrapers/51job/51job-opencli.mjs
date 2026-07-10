@@ -15,9 +15,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ensureChrome } from "../shared/ensure-chrome.mjs";
 import { ensureLoggedIn } from "../shared/check-login.mjs";
+import { outPath as scraperOutPath } from "../shared/paths.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CDP_URL   = process.env.BOSS_CDP_URL || "http://127.0.0.1:9223";
+const CDP_URL   = process.env.SCRAPER_CDP_URL || process.env.BOSS_CDP_URL || "http://127.0.0.1:9223";
 
 // 51job 城市码 → 城市名（opencli --area 接受中文）
 const CITY_MAP = {
@@ -130,12 +131,12 @@ async function main() {
   printProgress(0, options.maxPages, 0);
 
   await ensureChrome({ scriptName: "51job-opencli" });
-  await ensureLoggedIn("51job", { cdpUrl: CDP_URL, scriptName: "51job-opencli", skipVerify: true });
+  await ensureLoggedIn("51job", { cdpUrl: CDP_URL, scriptName: "51job-opencli", skipVerify: !process.env.SCRAPER_VERIFY_LOGIN });
 
   const cityName = cityCodeToName(options.city);
   const limit    = options.maxPages * 30; // 每页约30条
 
-  const outDir  = path.resolve("output/51job/rpa", options.query.toLowerCase(), String(options.city));
+  const outDir  = scraperOutPath("51job/rpa", options.query.toLowerCase(), String(options.city));
   const outPath = path.join(outDir, "report.json");
   await fs.mkdir(outDir, { recursive: true });
 
@@ -203,7 +204,6 @@ async function main() {
     reportPath:  outPath,
     dedupCount:  dedupJobs.length,
     rawJobCount: rawJobs.length,
-    dedupJobs,
   }, null, 2));
 
   if (!options.skipPipeline && dedupJobs.length > 0) {

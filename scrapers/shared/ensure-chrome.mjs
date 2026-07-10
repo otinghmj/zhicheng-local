@@ -20,10 +20,47 @@
 import { spawn } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
 import os from "node:os";
+import fs from "node:fs";
+import path from "node:path";
 
 const FALLBACK_PORTS = [9223, 9222, 9224];
-const USER_DATA_DIR  = `${os.homedir()}/chrome-boss-debug`;
-const CHROME_PATH    = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const USER_DATA_DIR  = path.join(os.homedir(), "chrome-boss-debug"); // path.join 跨平台
+
+// C2：按操作系统返回 Chrome 可执行路径（自动适配 Mac / Windows，Linux 不在支持范围）。
+// env CHROME_PATH 始终最高优先，换安装位置/换 OS 时贴一张便签即可。
+function defaultChromePath() {
+  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
+  if (process.platform === "win32") {
+    const candidates = [
+      path.join(process.env["PROGRAMFILES"] || "C:\\Program Files", "Google", "Chrome", "Application", "chrome.exe"),
+      path.join(process.env["PROGRAMFILES(X86)"] || "C:\\Program Files (x86)", "Google", "Chrome", "Application", "chrome.exe"),
+      path.join(process.env["LOCALAPPDATA"] || "", "Google", "Chrome", "Application", "chrome.exe"),
+    ];
+    for (const p of candidates) { try { if (p && fs.existsSync(p)) return p; } catch {} }
+    return candidates[0]; // 都没探到就返回标准安装位置作兜底
+  }
+  return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"; // 默认 macOS
+}
+const CHROME_PATH = defaultChromePath();
+
+// C1：managed 模式用 Playwright 自带 Chromium（跨平台、工具自管、登录态持久化到专属 userDataDir）。
+// external 模式（默认）沿用系统 Chrome。SCRAPER_LAUNCH_MODE=managed 切换。
+const MANAGED_USER_DATA_DIR = path.join(os.homedir(), "chrome-scraper-managed");
+
+async function resolveBrowserExe(launchMode) {
+  if (launchMode !== "managed") return { exe: CHROME_PATH, userDataDir: USER_DATA_DIR };
+  let exe;
+  try {
+    const { chromium } = await import("playwright");
+    exe = chromium.executablePath();
+  } catch (e) {
+    throw new Error("managed 模式需要 Playwright：请先运行 `npx playwright install chromium`（" + e.message + "）");
+  }
+  if (!exe || !fs.existsSync(exe)) {
+    throw new Error("Playwright Chromium 未安装：请运行 `npx playwright install chromium`");
+  }
+  return { exe, userDataDir: MANAGED_USER_DATA_DIR };
+}
 
 /** 探测单个 CDP 地址是否有 Chrome 响应，返回 version 信息或 null */
 async function probeCdp(url) {
@@ -50,18 +87,19 @@ async function scanFallbackPorts(preferredUrl) {
   return null;
 }
 
-/** 尝试自动启动调试 Chrome，等待最多 waitMs 毫秒 */
-async function autoStartChrome(preferredUrl, waitMs = 6000) {
+/** 尝试自动启动调试浏览器（external=系统 Chrome / managed=Playwright Chromium），等待最多 waitMs 毫秒 */
+async function autoStartChrome(preferredUrl, launchMode, waitMs = 8000) {
   const port = new URL(preferredUrl).port || "9223";
+  const { exe, userDataDir } = await resolveBrowserExe(launchMode);
   const child = spawn(
-    CHROME_PATH,
+    exe,
     [
-      `--user-data-dir=${USER_DATA_DIR}`,
+      `--user-data-dir=${userDataDir}`,
       `--remote-debugging-port=${port}`,
       "--no-first-run",
       "--no-default-browser-check",
     ],
-    { stdio: "ignore", detached: true },
+    { stdio: "ignore", detached: true },  // headed（不加 --headless），更像真人、便于首次登录
   );
   child.unref();
 
@@ -87,41 +125,60 @@ async function autoStartChrome(preferredUrl, waitMs = 6000) {
  */
 export async function ensureChrome({
   scriptName  = "scraper",
-  cdpUrl      = process.env.BOSS_CDP_URL || process.env.CDP_URL || "http://127.0.0.1:9223",
+  cdpUrl      = process.env.SCRAPER_CDP_URL || process.env.BOSS_CDP_URL || process.env.CDP_URL || "http://127.0.0.1:9223",
   autoStart   = true,
   exitOnFail  = true,
+  launchMode  = process.env.SCRAPER_LAUNCH_MODE || "external",  // external=系统Chrome（默认，回退）/ managed=Playwright 自管
 } = {}) {
-  // ── Step 1: 探测已有进程 ─────────────────────────────────────────────────────
+  // ── Step 1: 探测已有进程（两种模式都优先复用已在跑的浏览器）──────────────────
   const found = await scanFallbackPorts(cdpUrl);
   if (found) {
     const ver = found.info.Browser ?? "Chrome";
-    if (found.cdpUrl !== cdpUrl) {
-      console.error(`[${scriptName}] ✅ 调试 Chrome 就绪（${found.cdpUrl}，${ver}）`);
-    } else {
-      console.error(`[${scriptName}] ✅ 调试 Chrome 就绪（${found.cdpUrl}，${ver}）`);
-    }
+    console.error(`[${scriptName}] ✅ 调试浏览器就绪（${found.cdpUrl}，${ver}）`);
     return found.cdpUrl;
   }
 
   // ── Step 2: 尝试自动启动 ────────────────────────────────────────────────────
   if (autoStart) {
-    console.error(`[${scriptName}] 🚀 未检测到调试 Chrome，尝试自动启动...`);
-    const info = await autoStartChrome(cdpUrl);
-    if (info) {
-      console.error(`[${scriptName}] ✅ 调试 Chrome 已自动启动（${cdpUrl}，${info.Browser ?? "Chrome"}）`);
-      return cdpUrl;
+    const label = launchMode === "managed" ? "Playwright 自管 Chromium" : "系统调试 Chrome";
+    console.error(`[${scriptName}] 🚀 未检测到浏览器，尝试自动启动（${launchMode} 模式 · ${label}）...`);
+    try {
+      const info = await autoStartChrome(cdpUrl, launchMode);
+      if (info) {
+        console.error(`[${scriptName}] ✅ 已自动启动（${cdpUrl}，${info.Browser ?? "Chromium"}）`);
+        if (launchMode === "managed") {
+          console.error(`[${scriptName}] ℹ️  managed 首次使用请在弹出窗口登录各招聘平台，登录态持久化到 ${MANAGED_USER_DATA_DIR}`);
+        }
+        return cdpUrl;
+      }
+      console.error(`[${scriptName}] ⚠️  自动启动失败（浏览器未就绪）`);
+    } catch (e) {
+      console.error(`[${scriptName}] ⚠️  自动启动失败：${e.message}`);
     }
-    console.error(`[${scriptName}] ⚠️  自动启动失败（Chrome 未安装或路径不对？）`);
   }
 
   // ── Step 3: 失败处理 ────────────────────────────────────────────────────────
+  const startLines = launchMode === "managed"
+    ? [
+        `  managed 模式依赖 Playwright Chromium，请先安装后重跑：`,
+        `  npx playwright install chromium`,
+        `  （重跑会自动拉起浏览器，首次需在窗口内登录各平台）`,
+      ]
+    : process.platform === "win32"
+    ? [
+        `  请手动启动（Windows，命令提示符/PowerShell）：`,
+        `  "${CHROME_PATH}" --user-data-dir="${USER_DATA_DIR}" --remote-debugging-port=9223 --no-first-run --no-default-browser-check`,
+      ]
+    : [
+        `  请手动启动（macOS）：`,
+        `  open -na "Google Chrome" --args \\`,
+        `    --user-data-dir=${USER_DATA_DIR} \\`,
+        `    --remote-debugging-port=9223 \\`,
+        `    --no-first-run --no-default-browser-check`,
+      ];
   const msg = [
-    `\n[${scriptName}] ❌ 调试 Chrome 未运行（已扫描端口 ${FALLBACK_PORTS.join("/")}）`,
-    `  请手动启动：`,
-    `  open -na "Google Chrome" --args \\`,
-    `    --user-data-dir=${USER_DATA_DIR} \\`,
-    `    --remote-debugging-port=9223 \\`,
-    `    --no-first-run --no-default-browser-check`,
+    `\n[${scriptName}] ❌ 调试浏览器未运行（已扫描端口 ${FALLBACK_PORTS.join("/")}）`,
+    ...startLines,
     "",
   ].join("\n");
 

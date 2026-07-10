@@ -4,8 +4,9 @@
 import fs   from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { PIPELINE_PATH } from "../shared/paths.mjs";
 
-const DEFAULT_PIPELINE = path.resolve("data/pipeline.md");
+const DEFAULT_PIPELINE = PIPELINE_PATH;
 
 function formatPendingLine(job) {
   const location = [job.cityName, job.areaDistrict].filter(Boolean).join("·");

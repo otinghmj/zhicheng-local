@@ -1,0 +1,105 @@
+{
+  "skill_name": "job-scraper",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我搜索猎聘上的SQE职位，北京，3页",
+      "expected_output": "读取 references/liepin.md，构造 node scrapers/liepin/liepin-api.mjs --query SQE --city 010 --max-pages 3 --skip-pipeline 并执行，返回职位列表数据（不只是报告路径）",
+      "files": [],
+      "assertions": [
+        {
+          "name": "正确识别平台为猎聘",
+          "description": "命令使用 liepin-api.mjs，而不是其他平台的脚本"
+        },
+        {
+          "name": "北京城市码正确（猎聘格式）",
+          "description": "命令包含 --city 010，使用猎聘的城市码格式（不是 101010100 或 530）"
+        },
+        {
+          "name": "页数参数正确",
+          "description": "命令包含 --max-pages 3"
+        },
+        {
+          "name": "携带 --skip-pipeline",
+          "description": "命令包含 --skip-pipeline（接口规范）"
+        },
+        {
+          "name": "返回职位数据而非只说路径",
+          "description": "回答展示了职位列表内容（职位名/公司/薪资等），而不是只告知报告保存路径"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "帮我在BOSS直聘上搜一下上海的算法工程师",
+      "expected_output": "读取 references/boss.md，构造 node scrapers/boss/boss-hs-rpa.mjs --query 算法工程师 --city 101020100 --skip-pipeline 并执行",
+      "files": [],
+      "assertions": [
+        {
+          "name": "正确识别平台为BOSS直聘",
+          "description": "命令使用 boss-hs-rpa.mjs（主脚本），而不是 liepin 或其他平台脚本"
+        },
+        {
+          "name": "上海城市码正确（BOSS格式）",
+          "description": "命令包含 --city 101020100，使用 BOSS 的 9 位城市码格式"
+        },
+        {
+          "name": "关键词正确",
+          "description": "命令包含 --query 算法工程师"
+        },
+        {
+          "name": "携带 --skip-pipeline",
+          "description": "命令包含 --skip-pipeline"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "智联招聘帮我查一下深圳的质量工程师，10页",
+      "expected_output": "读取 references/zhaopin.md，构造 node scrapers/zhaopin/zhaopin-hs-rpa.mjs --query 质量工程师 --city 765 --max-pages 10 并执行",
+      "files": [],
+      "assertions": [
+        {
+          "name": "正确识别平台为智联",
+          "description": "命令使用 zhaopin-hs-rpa.mjs"
+        },
+        {
+          "name": "深圳城市码正确（智联格式）",
+          "description": "命令包含 --city 765，使用智联的城市码格式（不是 0755 或 101280600）"
+        },
+        {
+          "name": "页数参数正确",
+          "description": "命令包含 --max-pages 10"
+        },
+        {
+          "name": "关键词正确",
+          "description": "命令包含 --query 质量工程师"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "前程无忧搜一下广州的测试工程师，5页",
+      "expected_output": "读取 references/51job.md，构造 node scrapers/51job/51job-hs-rpa.mjs --query 测试工程师 --city 030200 --max-pages 5 并执行",
+      "files": [],
+      "assertions": [
+        {
+          "name": "正确识别平台为前程无忧",
+          "description": "命令使用 51job-hs-rpa.mjs"
+        },
+        {
+          "name": "广州城市码正确（51job格式）",
+          "description": "命令包含 --city 030200，使用 51job 的 6 位城市码格式"
+        },
+        {
+          "name": "页数参数正确",
+          "description": "命令包含 --max-pages 5"
+        },
+        {
+          "name": "关键词正确",
+          "description": "命令包含 --query 测试工程师"
+        }
+      ]
+    }
+  ]
+}
