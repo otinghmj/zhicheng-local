@@ -14,10 +14,8 @@ import remarkGfm from 'remark-gfm';
 
 import { EmptyState, ScoreTag, TriStateBadge } from '../components/common';
 import type { TriState } from '../components/common';
-import { readFile, writeFile, listFiles } from '../lib/fs';
 import { useAiTask } from '../hooks/useAiTask';
 import { useDataStore } from '../stores/dataStore';
-import { useFsStore } from '../stores/fsStore';
 import type { Application, InterviewPrepFile, StoryBankStory, StoryBankStoryCreate } from '../types';
 import './interview-prep.css';
 
@@ -94,7 +92,6 @@ export function InterviewPrep() {
   const [notice, noticeContext] = message.useMessage();
   const [searchParams] = useSearchParams();
   const { loading: dataLoading, error: dataError, applications: allApplications, storyBank, reloadStoryBank } = useDataStore();
-  const dirHandle = useFsStore((s) => s.dirHandle);
   const loadState = dataLoading ? 'loading' as const : dataError ? 'error' as const : 'ready' as const;
   const [detailState, setDetailState] = useState<DetailState>('idle');
   const [prepFiles, setPrepFiles] = useState<InterviewPrepFile[]>([]);
@@ -123,23 +120,21 @@ export function InterviewPrep() {
 
   useEffect(() => {
     if (aiTask.status.state === 'completed') {
-      void reloadStoryBank(dirHandle);
+      void reloadStoryBank();
       void notice.success('面试准备模块生成完成');
     }
     if (aiTask.status.state === 'failed') {
       void notice.error(aiTask.status.error ?? '面试准备生成失败');
     }
-  }, [aiTask.status.state, aiTask.status.error, notice, dirHandle, reloadStoryBank]);
+  }, [aiTask.status.state, aiTask.status.error, notice, reloadStoryBank]);
 
   useEffect(() => {
-    if (!dirHandle || dataLoading) return;
+    if (dataLoading) return;
     void (async () => {
       try {
-        const names = await listFiles(dirHandle, 'interview-prep');
-        const files: InterviewPrepFile[] = names
-          .filter((n) => n.endsWith('.md') && n !== 'story-bank.md')
-          .map((filename) => ({ filename, slug: filename.replace(/\.md$/, ''), exists: true, mtime: null }));
-        const deepFiles = files.filter((f) => f.slug.endsWith('-deep'));
+        const res = await fetch('/api/data/interview-prep');
+        const files = res.ok ? await res.json() as InterviewPrepFile[] : [];
+        const deepFiles = files.filter((f) => f.slug.endsWith('-deep') && f.filename !== 'story-bank.md');
         setPrepFiles(deepFiles);
         const requested = Number(searchParams.get('application'));
         const requestedApp = applications.find((item) => item.num === requested);
@@ -147,15 +142,15 @@ export function InterviewPrep() {
           ?? applications.find((item) => findPrepFile(item, deepFiles))
           ?? applications[0];
         setSelectedApplicationNum(defaultApp?.num);
-      } catch { /* no interview-prep dir */ }
+      } catch { /* no interview-prep data */ }
     })();
-  }, [dirHandle, dataLoading, searchParams, applications]);
+  }, [dataLoading, searchParams, applications]);
 
   const selectedApplication = applications.find((item) => item.num === selectedApplicationNum);
   const selectedPrepFile = useMemo(() => findPrepFile(selectedApplication, prepFiles), [prepFiles, selectedApplication]);
 
   useEffect(() => {
-    if (!selectedPrepFile || !dirHandle) {
+    if (!selectedPrepFile) {
       setPrepMarkdown('');
       setDetailState('idle');
       setActiveModule('immersion');
@@ -163,7 +158,8 @@ export function InterviewPrep() {
     }
     let active = true;
     setDetailState('loading');
-    void readFile(dirHandle, `interview-prep/${selectedPrepFile.filename}`)
+    void fetch(`/api/data/interview-prep/${encodeURIComponent(selectedPrepFile.slug)}`)
+      .then((res) => res.ok ? res.text() : Promise.reject(new Error('not found')))
       .then((markdown) => {
         if (!active) return;
         setPrepMarkdown(markdown);
@@ -173,7 +169,7 @@ export function InterviewPrep() {
       })
       .catch(() => active && setDetailState('error'));
     return () => { active = false; };
-  }, [selectedPrepFile, dirHandle]);
+  }, [selectedPrepFile]);
 
   const moduleSections = useMemo(() => parseH2Modules(prepMarkdown), [prepMarkdown]);
   const moduleStates = useMemo(() => {
@@ -219,44 +215,12 @@ export function InterviewPrep() {
   const activeDetail = detailSections.find((section) => section.title === activeSection);
   const activeModuleMeta = MODULES.find((module) => module.key === activeModule)!;
 
+  // 只读看板：故事库写操作交给 Agent。校验后提示如何交给 Agent。
   const createStory = async () => {
-    if (!dirHandle) return;
     const value = await storyForm.validateFields();
-    const split = (text: string) => text.split(/[，,、/]/).map((item) => item.trim()).filter(Boolean);
-    const payload: StoryBankStoryCreate = {
-      title: value.title,
-      themes: split(value.themesText),
-      source: value.source,
-      situation: value.situation,
-      task: value.task,
-      action: value.action,
-      result: value.result,
-      reflection: value.reflection,
-      suitableFor: split(value.suitableForText),
-    };
-    setSavingStory(true);
-    try {
-      const block = [
-        `### [${payload.themes.join(' · ')}] ${payload.title}`,
-        `**来源：** ${payload.source}`,
-        `**S（背景）：** ${payload.situation}`,
-        `**T（任务）：** ${payload.task}`,
-        `**A（行动）：** ${payload.action}`,
-        `**R（结果）：** ${payload.result}`,
-        `**Reflection：** ${payload.reflection}`,
-        `**适用于：** ${payload.suitableFor?.join(' / ') ?? ''}`,
-      ].join('\n');
-      const content = await readFile(dirHandle, 'interview-prep/story-bank.md').catch(() => '');
-      await writeFile(dirHandle, 'interview-prep/story-bank.md', `${content.trimEnd()}\n\n---\n\n${block}\n`);
-      await reloadStoryBank(dirHandle);
-      setStoryModalOpen(false);
-      storyForm.resetFields();
-      void notice.success('故事已追加到 story-bank.md');
-    } catch {
-      void notice.error('新增故事失败');
-    } finally {
-      setSavingStory(false);
-    }
+    void notice.info(`新增故事请对 Agent 说：把「${value.title}」按 STAR+R 追加到 interview-prep/story-bank.md`);
+    setStoryModalOpen(false);
+    storyForm.resetFields();
   };
 
   const openEditStory = (story: StoryBankStory) => {
@@ -276,45 +240,10 @@ export function InterviewPrep() {
   };
 
   const saveEditStory = async () => {
-    if (!editingStory || !dirHandle) return;
+    if (!editingStory) return;
     const value = await editForm.validateFields();
-    const split = (text: string) => text.split(/[，,、/]/).map((item) => item.trim()).filter(Boolean);
-    setSavingEditStory(true);
-    try {
-      const content = await readFile(dirHandle, 'interview-prep/story-bank.md');
-      const newBlock = [
-        `### [${split(value.themesText).join(' · ')}] ${value.title}`,
-        `**来源：** ${value.source}`,
-        `**S（背景）：** ${value.situation}`,
-        `**T（任务）：** ${value.task}`,
-        `**A（行动）：** ${value.action}`,
-        `**R（结果）：** ${value.result}`,
-        `**Reflection：** ${value.reflection}`,
-        `**适用于：** ${split(value.suitableForText).join(' / ')}`,
-      ].join('\n');
-      const sections = content.split(/\n---\n/);
-      const titlePattern = new RegExp(`^###\\s+\\[.*?\\]\\s+${editingStory.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'm');
-      let found = false;
-      const rebuilt = sections.map((section) => {
-        if (!found && titlePattern.test(section.trim())) {
-          found = true;
-          return newBlock;
-        }
-        return section;
-      });
-      if (found) {
-        await writeFile(dirHandle, 'interview-prep/story-bank.md', rebuilt.join('\n---\n'));
-        await reloadStoryBank(dirHandle);
-        setEditStoryModalOpen(false);
-        void notice.success('故事已更新');
-      } else {
-        void notice.error('未找到匹配的故事');
-      }
-    } catch {
-      void notice.error('更新故事失败');
-    } finally {
-      setSavingEditStory(false);
-    }
+    void notice.info(`更新故事请对 Agent 说：把 interview-prep/story-bank.md 里的「${editingStory.title}」更新为「${value.title}」`);
+    setEditStoryModalOpen(false);
   };
 
   return (

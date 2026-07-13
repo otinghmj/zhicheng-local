@@ -43,14 +43,11 @@ import { useNavigate } from 'react-router-dom';
 
 import { EmptyState, EnvironmentStatusCard, PlatformChip } from '../components/common';
 import type { PlatformChipVariant } from '../components/common';
-import { writeBackScrapeResult } from '../lib/local-writeback';
-import { readFile, writeFile } from '../lib/fs';
 import { useAiTask, useAiConfig } from '../hooks/useAiTask';
 import { useCdpStatus } from '../hooks/useCdpStatus';
 import { useSSEHandler } from '../hooks/useSSE';
 import type { SSEEventData } from '../hooks/useSSE';
 import { useDataStore } from '../stores/dataStore';
-import { useFsStore } from '../stores/fsStore';
 import type { CityCodes, ScriptProgress, TaskHistoryEntry } from '../types';
 import './scan.css';
 
@@ -173,7 +170,6 @@ export function Scan() {
   const selectedCities = Form.useWatch('cities', form) ?? [];
   const selectedRounds = Form.useWatch('rounds', form);
   const { scanHistory, taskHistory: storeTaskHistory, loading: dataLoading, error: dataError } = useDataStore();
-  const { dirHandle } = useFsStore();
   const reloadTaskHistory = useDataStore((s) => s.reloadTaskHistory);
   const reloadScanHistory = useDataStore((s) => s.reloadScanHistory);
   const reloadPipeline = useDataStore((s) => s.reloadPipeline);
@@ -264,7 +260,7 @@ export function Scan() {
     ));
   }, []);
 
-  const onScriptDone = useCallback(async (data: SSEEventData) => {
+  const onScriptDone = useCallback((data: SSEEventData) => {
     if (!data.jobId) return;
     const completed = data.exitCode === 0 || !('error' in data);
     setRunningTasks((current) => current.filter((item) => item.id !== data.jobId));
@@ -273,43 +269,29 @@ export function Scan() {
         ? { ...item, ended: new Date().toISOString(), exitCode: completed ? 0 : 1 }
         : item,
     ));
-    if (dirHandle && completed) {
-      try {
-        const res = await fetch(`/api/scripts/${data.jobId}/result`);
-        if (res.ok) {
-          const result = await res.json();
-          if (result.dedupJobs?.length) {
-            await writeBackScrapeResult(dirHandle, result);
-          }
-        }
-      } catch { /* best-effort writeback */ }
-    }
-    void reloadScanHistory(dirHandle);
-    void reloadPipeline(dirHandle);
-    void reloadTaskHistory(dirHandle);
-  }, [dirHandle, reloadScanHistory, reloadPipeline, reloadTaskHistory]);
+    // 数据由服务端/Agent 写入工作目录，这里只重新拉取展示。
+    void reloadScanHistory();
+    void reloadPipeline();
+    void reloadTaskHistory();
+  }, [reloadScanHistory, reloadPipeline, reloadTaskHistory]);
 
   useSSEHandler('script-progress', onScriptProgress);
   useSSEHandler('script-completed', onScriptDone);
   useSSEHandler('script-failed', onScriptDone);
 
   const openPortalsEditor = async () => {
-    if (!dirHandle) {
-      void notice.warning('请先选择工作目录');
-      return;
-    }
     try {
-      const content = await readFile(dirHandle, 'portals.yml');
+      const res = await fetch('/api/data/portals');
+      const data = res.ok ? await res.json() as Record<string, unknown> : null;
       const YAML = await import('yaml');
-      const data = YAML.parse(content) as Record<string, unknown>;
       setPortalsData(data && typeof data === 'object' ? data : null);
-      setPortalsDraft(content || '');
+      setPortalsDraft(data ? YAML.stringify(data) : '');
       setPortalsEditorOpen(true);
     } catch {
       setPortalsData(null);
       setPortalsDraft('');
       setPortalsEditorOpen(true);
-      void notice.warning('portals.yml 不存在或为空，可切换到 YAML 编辑手动创建');
+      void notice.warning('portals.yml 不存在或为空');
     }
   };
 
@@ -328,22 +310,17 @@ export function Scan() {
     else void notice.info('AI 正在根据你的 CV 和 profile 生成采集配置...');
   };
 
+  // 只读看板：采集配置改为交给 Agent 落盘。这里校验 YAML 并提示如何交给 Agent。
   const savePortals = async () => {
-    if (!dirHandle) return;
-    setSavingPortals(true);
     try {
       const YAML = await import('yaml');
       YAML.parse(portalsDraft);
-      await writeFile(dirHandle, 'portals.yml', portalsDraft);
-      const { reloadPortals } = useDataStore.getState();
-      await reloadPortals(dirHandle);
-      setPortalsEditorOpen(false);
-      void notice.success('portals.yml 已保存');
     } catch {
-      void notice.error('portals.yml 保存失败（请检查 YAML 格式）');
-    } finally {
-      setSavingPortals(false);
+      void notice.error('YAML 格式有误，请先修正');
+      return;
     }
+    void notice.info('采集配置修改请对 Agent 说：把编辑后的 YAML 更新到 portals.yml');
+    setPortalsEditorOpen(false);
   };
 
   const stopTask = async (jobId: string) => {

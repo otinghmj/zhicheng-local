@@ -15,11 +15,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { EmptyState, ScoreTag, StatusBadge } from '../components/common';
-import { readFile, writeFile, listFiles } from '../lib/fs';
-import { appendApplicationRow, appendApplicationContent } from '../lib/writers';
 import { useAiTask } from '../hooks/useAiTask';
 import { useDataStore } from '../stores/dataStore';
-import { useFsStore } from '../stores/fsStore';
 import type {
   Application,
   EvaluationReportDetail,
@@ -149,7 +146,6 @@ function SummaryVisual({ detail }: { detail: EvaluationReportDetail }) {
 export function Reports() {
   const [notice, noticeContext] = message.useMessage();
   const { loading: dataLoading, error: dataError, reports, applications, reloadApplications, reloadReports, getReportDetail } = useDataStore();
-  const dirHandle = useFsStore((s) => s.dirHandle);
   const [detailState, setDetailState] = useState<DetailState>('idle');
   const [pdfFiles, setPdfFiles] = useState<PdfFile[]>([]);
   const [selectedPath, setSelectedPath] = useState<string>();
@@ -167,46 +163,28 @@ export function Reports() {
 
   useEffect(() => {
     if (aiTask.status.state === 'completed') {
-      void reloadReports(dirHandle);
-      void reloadApplications(dirHandle);
+      void reloadReports();
+      void reloadApplications();
       void notice.success('AI 任务已完成');
     }
     if (aiTask.status.state === 'failed') {
       void notice.error(aiTask.status.error ?? 'AI 任务执行失败');
     }
-  }, [aiTask.status.state, aiTask.status.error, notice, dirHandle, reloadReports, reloadApplications]);
+  }, [aiTask.status.state, aiTask.status.error, notice, reloadReports, reloadApplications]);
 
   const generatePdf = () => {
     if (!detail?.url) return;
     void aiTask.start('pdf', detail.url);
   };
 
-  const addToTracker = async () => {
-    if (!detail || !dirHandle) return;
-    const alreadyTracked = applications.some((app) => app.company === detail.company && app.role === detail.role);
-    if (alreadyTracked) {
+  // 只读看板：入库等写操作交给 Agent。这里给出可直接对 Agent 说的一句话。
+  const addToTracker = () => {
+    if (!detail) return;
+    if (applications.some((app) => app.company === detail.company && app.role === detail.role)) {
       void notice.warning('该公司+职位已在 Tracker 中');
       return;
     }
-    try {
-      const content = await readFile(dirHandle, 'data/applications.md');
-      const result = appendApplicationRow(content, {
-        date: detail.date ?? new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' }),
-        company: detail.company ?? '未知公司',
-        role: detail.role ?? '未知职位',
-        score: detail.score,
-        status: 'Evaluated',
-        pdfGenerated: !!pdfFiles.find((pdf) => pdf.date === detail.date && normalize(pdf.filename).includes(normalize(detail.company ?? ''))),
-        reportPath: detail.reportPath,
-        notes: '',
-      });
-      const row = (result as Application & { _appendedRow: string })._appendedRow;
-      await writeFile(dirHandle, 'data/applications.md', appendApplicationContent(content, row));
-      await reloadApplications(dirHandle);
-      void notice.success(`已入库 #${result.num} ${result.company}`);
-    } catch (error) {
-      void notice.error(error instanceof Error ? error.message : '入库失败');
-    }
+    void notice.info(`入库请对 Agent 说：把「${detail.company ?? ''} ${detail.role ?? ''}」（${detail.reportPath ?? detail.url ?? ''}）登记到投递跟踪`);
   };
 
   useEffect(() => {
@@ -216,28 +194,23 @@ export function Reports() {
   }, [dataLoading, reports, selectedPath]);
 
   useEffect(() => {
-    if (!dirHandle) return;
+    let active = true;
     void (async () => {
       try {
-        const pdfNames = await listFiles(dirHandle, 'output');
-        const pdfs: PdfFile[] = pdfNames
-          .filter((n) => n.endsWith('.pdf'))
-          .map((filename) => {
-            const dateMatch = filename.match(/(\d{4}-\d{2}-\d{2})/);
-            return { filename, date: dateMatch?.[1] ?? '', size: 0, mtime: dateMatch?.[1] ?? '' };
-          });
-        setPdfFiles(pdfs);
-      } catch { /* no output dir yet */ }
+        const res = await fetch('/api/data/pdfs');
+        if (res.ok && active) setPdfFiles(await res.json() as PdfFile[]);
+      } catch { /* no pdfs yet */ }
     })();
-  }, [dirHandle, reports]);
+    return () => { active = false; };
+  }, [reports]);
 
   useEffect(() => {
     const selectedReport = reports.find((report) => report.reportPath === selectedPath);
-    if (selectedReport?.num === undefined || !dirHandle) return;
+    if (selectedReport?.num === undefined) return;
     let active = true;
     setDetailState('loading');
     setActiveSection('A');
-    void getReportDetail(dirHandle, selectedReport.reportPath ?? '')
+    void getReportDetail(selectedReport.reportPath ?? '')
       .then((value) => {
         if (!active) return;
         if (value) {
@@ -249,7 +222,7 @@ export function Reports() {
       })
       .catch(() => active && setDetailState('error'));
     return () => { active = false; };
-  }, [reports, selectedPath, dirHandle, getReportDetail]);
+  }, [reports, selectedPath, getReportDetail]);
 
   const applicationByReport = useMemo(() => {
     const byPath = new Map<string, Application>();

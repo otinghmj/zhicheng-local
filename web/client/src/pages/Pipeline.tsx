@@ -15,10 +15,7 @@ import { useMemo, useState } from 'react';
 
 import { EmptyState, PlatformChip, ScoreTag, StatStrip } from '../components/common';
 import type { PlatformChipVariant } from '../components/common';
-import { readFile, writeFile } from '../lib/fs';
-import { patchPipelineContent, appendPipelineUrl } from '../lib/writers';
 import { useDataStore } from '../stores/dataStore';
-import { useFsStore } from '../stores/fsStore';
 import type { PipelineParsedItem } from '../types';
 import './pipeline.css';
 
@@ -104,14 +101,12 @@ const INDUSTRY_LABELS = ['非目标行业', '目标行业/AI科技属性'];
 
 export function Pipeline() {
   const [notice, noticeContext] = message.useMessage();
-  const { loading: dataLoading, error: dataError, pipeline: pipelineData, scanHistory: scanHistoryData, reloadPipeline, reloadScanHistory } = useDataStore();
-  const dirHandle = useFsStore((s) => s.dirHandle);
+  const { loading: dataLoading, error: dataError, pipeline: pipelineData, scanHistory: scanHistoryData } = useDataStore();
   const [statusTab, setStatusTab] = useState<StatusTab>('all');
   const [query, setQuery] = useState('');
   const [platform, setPlatform] = useState<string>();
   const [industry, setIndustry] = useState<string>();
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
-  const [writing, setWriting] = useState(false);
   const [detailRow, setDetailRow] = useState<PipelineRow | null>(null);
   const [addUrlOpen, setAddUrlOpen] = useState(false);
   const [addingUrl, setAddingUrl] = useState(false);
@@ -166,66 +161,26 @@ export function Pipeline() {
     URL.revokeObjectURL(url);
   };
 
+  // 只读看板：队列的增/删/处理都交给 Agent，这里给出可直接对 Agent 说的一句话。
   const addUrl = async (values: { url: string; company?: string; role?: string }) => {
-    if (!dirHandle) return;
-    setAddingUrl(true);
-    try {
-      const content = await readFile(dirHandle, 'data/pipeline.md');
-      const updated = appendPipelineUrl(content, values);
-      await writeFile(dirHandle, 'data/pipeline.md', updated);
-      await reloadPipeline(dirHandle);
-      void notice.success('已添加到待处理队列');
-      addForm.resetFields();
-      setAddUrlOpen(false);
-    } catch (error) {
-      void notice.error(error instanceof Error ? error.message : '添加失败');
-    } finally {
-      setAddingUrl(false);
-    }
+    void notice.info(`添加请对 Agent 说：把 ${values.url} 加入待处理队列（pipeline）`);
+    addForm.resetFields();
+    setAddUrlOpen(false);
   };
 
-  const writePipeline = async (body: { remove?: string[]; updates?: Array<{ url: string; processed: boolean }> }) => {
-    if (!dirHandle) return;
-    setWriting(true);
-    try {
-      const content = await readFile(dirHandle, 'data/pipeline.md');
-      const { content: updated, removed } = patchPipelineContent(content, body);
-      await writeFile(dirHandle, 'data/pipeline.md', updated);
-      if (removed.length) {
-        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
-        const scanContent = await readFile(dirHandle, 'data/scan-history.tsv').catch(() => '');
-        const existingUrls = new Set(scanContent.split(/\r?\n/).map((line) => line.split('\t')[0]));
-        const rows = removed
-          .filter((item) => !existingUrls.has(item.url))
-          .map((item) => {
-            const p = inferPlatform(item.url);
-            return [item.url, today, p.name, item.role, item.company, 'skipped_dup'].join('\t');
-          });
-        if (rows.length) {
-          await writeFile(dirHandle, 'data/scan-history.tsv', `${scanContent.trimEnd()}\n${rows.join('\n')}\n`);
-          await reloadScanHistory(dirHandle);
-        }
-      }
-      await reloadPipeline(dirHandle);
-      setSelectedKeys([]);
-      void notice.success('队列已保存');
-    } catch {
-      void notice.error('队列保存失败');
-    } finally {
-      setWriting(false);
-    }
+  const askAgentPipeline = (action: string) => {
+    void notice.info(`该操作请交给 Agent 执行（pipeline 模式）：${action}`);
+  };
+
+  const writePipeline = (body: { remove?: string[]; updates?: Array<{ url: string; processed: boolean }> }) => {
+    if (body.remove?.length) askAgentPipeline(`移除 ${body.remove.length} 条并写入扫描历史`);
+    else askAgentPipeline(`标记 ${body.updates?.length ?? 0} 条的处理状态`);
+    setSelectedKeys([]);
   };
 
   const removeSelected = () => {
     if (!selectedRows.length) return;
-    Modal.confirm({
-      title: `确认移除 ${selectedRows.length} 条记录？`,
-      content: '移除后 URL 会同步写入扫描历史，避免后续重新采集。',
-      okText: '确认移除',
-      okButtonProps: { danger: true },
-      cancelText: '取消',
-      onOk: () => writePipeline({ remove: selectedRows.map((row) => row.url) }),
-    });
+    askAgentPipeline(`移除选中的 ${selectedRows.length} 条记录`);
   };
 
   const columns: ColumnsType<PipelineRow> = [
@@ -262,7 +217,7 @@ export function Pipeline() {
       title: '操作',
       fixed: 'right',
       width: 62,
-      render: (_, row) => <Tooltip title={row.processed ? '取消勾选，移回待处理' : '勾选并标记为已处理'}><Button type="text" loading={writing} icon={<ReloadOutlined />} onClick={() => void writePipeline({ updates: [{ url: row.url, processed: !row.processed }] })} /></Tooltip>,
+      render: (_, row) => <Tooltip title={row.processed ? '取消勾选，移回待处理' : '勾选并标记为已处理'}><Button type="text" icon={<ReloadOutlined />} onClick={() => void writePipeline({ updates: [{ url: row.url, processed: !row.processed }] })} /></Tooltip>,
     },
   ];
 
@@ -353,8 +308,8 @@ export function Pipeline() {
             </Card>
             <Card title="批量操作" extra={`已选择 ${selectedKeys.length} 条`}>
               <div className="pipeline-batch">
-                <Button disabled={!selectedRows.length} loading={writing} icon={<ThunderboltOutlined />} onClick={() => void writePipeline({ updates: selectedRows.map((row) => ({ url: row.url, processed: true })) })}>批量处理</Button>
-                <Button disabled={!selectedRows.length} loading={writing} danger icon={<DeleteOutlined />} onClick={removeSelected}>批量移除</Button>
+                <Button disabled={!selectedRows.length} icon={<ThunderboltOutlined />} onClick={() => void writePipeline({ updates: selectedRows.map((row) => ({ url: row.url, processed: true })) })}>批量处理</Button>
+                <Button disabled={!selectedRows.length} danger icon={<DeleteOutlined />} onClick={removeSelected}>批量移除</Button>
               </div>
             </Card>
             <Card title="数据操作">

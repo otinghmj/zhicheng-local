@@ -8,6 +8,7 @@ import { dataRouter } from './routes/data.mjs';
 import { healthRouter } from './routes/health.mjs';
 import { errorMiddleware } from './utils/errors.mjs';
 import { handleMcpRequest } from './services/mcp-server.mjs';
+import { projectPath } from './utils/paths.mjs';
 
 export const app = express();
 
@@ -25,6 +26,8 @@ app.use(express.json());
 app.use('/api', healthRouter);
 app.use('/api', apiRouter);
 app.use('/api/data', dataRouter);
+// 只读静态：生成的 PDF（output/），供看板内联预览与下载。
+app.use('/api/files/output', express.static(projectPath('output')));
 app.all('/mcp', async (req, res, next) => {
   try {
     await handleMcpRequest(req, res);

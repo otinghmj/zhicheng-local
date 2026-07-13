@@ -21,9 +21,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { EmptyState } from '../components/common';
-import { readFile, readFileAsUrl, writeFile, listFiles } from '../lib/fs';
 import { useDataStore } from '../stores/dataStore';
-import { useFsStore } from '../stores/fsStore';
 import type {
   Application,
   EvaluationReportSummary,
@@ -98,7 +96,6 @@ function normalizeSyncResult(payload: unknown): SyncResult | undefined {
 
 export function CV() {
   const { loading: dataLoading, error: dataError, cvContent, reports, applications } = useDataStore();
-  const dirHandle = useFsStore((s) => s.dirHandle);
   const loadState = dataLoading ? 'loading' as const : dataError ? 'error' as const : 'ready' as const;
   const [pdfFiles, setPdfFiles] = useState<PdfFile[]>([]);
   const [query, setQuery] = useState('');
@@ -117,14 +114,9 @@ export function CV() {
   const blobCache = useMemo(() => new Map<string, string>(), []);
 
   const getPdfBlobUrl = useCallback(async (filename: string) => {
-    if (blobCache.has(filename)) return blobCache.get(filename)!;
-    if (!dirHandle) return '';
-    try {
-      const url = await readFileAsUrl(dirHandle, `output/${filename}`);
-      blobCache.set(filename, url);
-      return url;
-    } catch { return ''; }
-  }, [dirHandle, blobCache]);
+    // 由后端只读静态服务提供（/api/files/output），任意浏览器可内联预览与下载。
+    return `/api/files/output/${filename.split('/').map(encodeURIComponent).join('/')}`;
+  }, []);
 
   useEffect(() => {
     if (!selectedPdf) { setPreviewUrl(undefined); return; }
@@ -182,20 +174,15 @@ export function CV() {
   };
 
   useEffect(() => {
-    if (!dirHandle) return;
+    let active = true;
     void (async () => {
       try {
-        const names = await listFiles(dirHandle, 'output');
-        const pdfs: PdfFile[] = names
-          .filter((n) => n.endsWith('.pdf'))
-          .map((filename) => {
-            const dateMatch = filename.match(/(\d{4}-\d{2}-\d{2})/);
-            return { filename, date: dateMatch?.[1] ?? '', size: 0, mtime: dateMatch?.[1] ?? '' };
-          });
-        setPdfFiles(pdfs);
-      } catch { /* no output dir */ }
+        const res = await fetch('/api/data/pdfs');
+        if (res.ok && active) setPdfFiles(await res.json() as PdfFile[]);
+      } catch { /* no pdfs */ }
     })();
-  }, [dirHandle, dataLoading]);
+    return () => { active = false; };
+  }, [dataLoading]);
 
   const runSyncCheck = async () => {
     setSyncState('unavailable');
@@ -208,38 +195,18 @@ export function CV() {
     setEditorOpen(true);
   };
 
+  // 只读看板：cv.md / profile.yml 属于用户层文件，写入交给 Agent。
   const saveCv = () => {
-    if (!dirHandle) return;
-    Modal.confirm({
-      title: '确认写入 cv.md？',
-      content: 'cv.md 属于用户层文件。',
-      okText: '确认保存',
-      cancelText: '取消',
-      onOk: async () => {
-        setSavingCv(true);
-        try {
-          await writeFile(dirHandle, 'cv.md', cvDraft);
-          const { loadAll } = useDataStore.getState();
-          await loadAll(dirHandle);
-          setEditorOpen(false);
-          void notice.success('cv.md 已保存');
-        } catch {
-          void notice.error('cv.md 保存失败');
-        } finally {
-          setSavingCv(false);
-        }
-      },
-    });
+    void notice.info('保存请对 Agent 说：把编辑后的内容写入 cv.md（可把草稿发给它）');
+    setEditorOpen(false);
   };
 
   const openProfileEditor = async () => {
-    if (!dirHandle) return;
     try {
-      const content = await readFile(dirHandle, 'config/profile.yml');
+      const data = await fetch('/api/data/profile').then((r) => r.ok ? r.json() as Promise<Record<string, unknown>> : null);
       const YAML = await import('yaml');
-      const data = YAML.parse(content) as Record<string, unknown>;
       setProfileData(data);
-      setProfileDraft(YAML.stringify(data));
+      setProfileDraft(data ? YAML.stringify(data) : '');
       setProfileEditorOpen(true);
     } catch {
       void notice.error('profile.yml 加载失败');
@@ -247,27 +214,8 @@ export function CV() {
   };
 
   const saveProfile = () => {
-    if (!dirHandle) return;
-    Modal.confirm({
-      title: '确认写入 profile.yml？',
-      content: 'profile.yml 属于用户层文件。',
-      okText: '确认保存',
-      cancelText: '取消',
-      onOk: async () => {
-        setSavingProfile(true);
-        try {
-          await writeFile(dirHandle, 'config/profile.yml', profileDraft);
-          const { loadAll } = useDataStore.getState();
-          await loadAll(dirHandle);
-          setProfileEditorOpen(false);
-          void notice.success('profile.yml 已保存');
-        } catch {
-          void notice.error('profile.yml 保存失败');
-        } finally {
-          setSavingProfile(false);
-        }
-      },
-    });
+    void notice.info('保存请对 Agent 说：把编辑后的内容写入 config/profile.yml');
+    setProfileEditorOpen(false);
   };
 
   const applicationsByReport = useMemo(() => {

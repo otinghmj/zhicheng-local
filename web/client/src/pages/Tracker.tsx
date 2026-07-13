@@ -33,10 +33,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { EmptyState, ScoreTag, StatusBadge } from '../components/common';
-import { readFile, writeFile } from '../lib/fs';
-import { modifyApplicationContent, deleteApplicationLine, appendApplicationRow, appendApplicationContent } from '../lib/writers';
 import { useDataStore } from '../stores/dataStore';
-import { useFsStore } from '../stores/fsStore';
 import type { Application, StateDefinition } from '../types';
 import './tracker.css';
 
@@ -91,7 +88,6 @@ export function Tracker() {
   const navigate = useNavigate();
   const [notice, noticeContext] = message.useMessage();
   const { loading: dataLoading, applications, states: rawStates, reloadApplications } = useDataStore();
-  const dirHandle = useFsStore((s) => s.dirHandle);
   const states = useMemo(() => rawStates.filter((s: StateDefinition) => s.label), [rawStates]);
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [selected, setSelected] = useState<Application | null>(null);
@@ -148,49 +144,23 @@ export function Tracker() {
     else void notice.error(response.status === 409 ? '同名任务正在运行中' : '任务启动失败');
   };
 
-  const updateSelectedStatus = async () => {
-    if (!batchStatus || !selectedNums.length || !dirHandle) return;
-    setBatchSaving(true);
-    try {
-      let content = await readFile(dirHandle, 'data/applications.md');
-      for (const num of selectedNums) {
-        content = modifyApplicationContent(content, Number(num), { status: batchStatus }, states);
-      }
-      await writeFile(dirHandle, 'data/applications.md', content);
-      await reloadApplications(dirHandle);
-      setSelectedNums([]);
-      void notice.success(`已更新 ${selectedNums.length} 条投递状态`);
-    } catch {
-      void notice.error('批量更新失败');
-    } finally {
-      setBatchSaving(false);
-    }
+  // 只读看板：投递跟踪的写操作交给 Agent（tracker 模式）。这里给出可直接对 Agent 说的一句话。
+  const askAgentTracker = (action: string) => {
+    void notice.info(`该操作请交给 Agent 执行（tracker 模式）：${action}`);
+  };
+
+  const updateSelectedStatus = () => {
+    if (!batchStatus || !selectedNums.length) return;
+    askAgentTracker(`把 #${selectedNums.join('、#')} 的状态改为「${batchStatus}」`);
   };
 
   const handleDrop = (event: React.DragEvent, targetStatus: string) => {
     event.preventDefault();
     const num = Number(event.dataTransfer.getData('application-num'));
-    if (!Number.isInteger(num) || !dirHandle) return;
+    if (!Number.isInteger(num)) return;
     const previous = effectiveApplications.find((item) => item.num === num)?.status;
     if (!previous || previous === targetStatus) return;
-    setOptimisticStatuses((current) => ({ ...current, [num]: targetStatus }));
-    void (async () => {
-      try {
-        const content = await readFile(dirHandle, 'data/applications.md');
-        const updated = modifyApplicationContent(content, num, { status: targetStatus }, states);
-        await writeFile(dirHandle, 'data/applications.md', updated);
-        await reloadApplications(dirHandle);
-        setOptimisticStatuses((current) => {
-          const next = { ...current };
-          delete next[num];
-          return next;
-        });
-        void notice.success('状态已保存');
-      } catch {
-        setOptimisticStatuses((current) => ({ ...current, [num]: previous }));
-        void notice.error('状态保存失败，已恢复原状态');
-      }
-    })();
+    askAgentTracker(`把 #${num} 的状态从「${previous}」改为「${targetStatus}」`);
   };
 
   const openDetail = (item: Application) => {
@@ -199,69 +169,19 @@ export function Tracker() {
     setSelectedNotes(item.notes ?? '');
   };
 
-  const saveDetail = async () => {
-    if (!selected || !dirHandle) return;
-    setSavingDetail(true);
-    try {
-      const content = await readFile(dirHandle, 'data/applications.md');
-      const updated = modifyApplicationContent(content, selected.num, { status: selectedStatus, notes: selectedNotes }, states);
-      await writeFile(dirHandle, 'data/applications.md', updated);
-      await reloadApplications(dirHandle);
-      const refreshed = useDataStore.getState().applications.find((a) => a.num === selected.num);
-      if (refreshed) setSelected(refreshed);
-      setOptimisticStatuses((current) => {
-        const next = { ...current };
-        delete next[selected.num];
-        return next;
-      });
-      void notice.success('状态和备注已保存');
-    } catch {
-      void notice.error('保存失败');
-    } finally {
-      setSavingDetail(false);
-    }
+  const saveDetail = () => {
+    if (!selected) return;
+    askAgentTracker(`更新 #${selected.num} ${selected.company}：状态「${selectedStatus}」，备注「${selectedNotes}」`);
   };
 
   const deleteDetail = () => {
-    if (!selected || !dirHandle) return;
-    Modal.confirm({
-      title: '确认删除？',
-      content: `将从 applications.md 中删除 #${selected.num} ${selected.company} · ${selected.role}，此操作不可撤销。`,
-      okText: '确认删除',
-      okButtonProps: { danger: true },
-      cancelText: '取消',
-      onOk: async () => {
-        setDeletingDetail(true);
-        try {
-          const content = await readFile(dirHandle, 'data/applications.md');
-          const updated = deleteApplicationLine(content, selected.num);
-          await writeFile(dirHandle, 'data/applications.md', updated);
-          await reloadApplications(dirHandle);
-          setSelected(null);
-          void notice.success('记录已删除');
-        } catch {
-          void notice.error('删除失败');
-        } finally {
-          setDeletingDetail(false);
-        }
-      },
-    });
+    if (!selected) return;
+    askAgentTracker(`从投递跟踪删除 #${selected.num} ${selected.company} · ${selected.role}`);
   };
 
-  const createApplication = async (values: { company: string; role: string; status: string; notes: string }) => {
-    if (!dirHandle) return;
-    try {
-      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
-      const content = await readFile(dirHandle, 'data/applications.md');
-      const result = appendApplicationRow(content, { date: today, ...values, pdfGenerated: false });
-      const row = (result as Application & { _appendedRow: string })._appendedRow;
-      await writeFile(dirHandle, 'data/applications.md', appendApplicationContent(content, row));
-      await reloadApplications(dirHandle);
-      setAddCardOpen(false);
-      void notice.success(`已添加 #${result.num} ${result.company}`);
-    } catch (error) {
-      void notice.error(error instanceof Error ? error.message : '添加失败');
-    }
+  const createApplication = (values: { company: string; role: string; status: string; notes: string }) => {
+    askAgentTracker(`新增投递：${values.company} · ${values.role}（状态「${values.status}」）`);
+    setAddCardOpen(false);
   };
 
   const tableColumns: ColumnsType<Application> = [

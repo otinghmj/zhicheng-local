@@ -16,7 +16,7 @@ export function DirectoryPicker({ children }: { children: React.ReactNode }) {
   const loadAll = useDataStore((s) => s.loadAll);
 
   useEffect(() => {
-    void loadAll(undefined);
+    void loadAll();
   }, [loadAll]);
 
   if (loading) {
@@ -35,7 +35,7 @@ export function DirectoryPicker({ children }: { children: React.ReactNode }) {
           title="数据加载失败"
           subTitle={`${error} —— 请确认本地服务已启动（npm start）后重试。`}
           extra={
-            <Button type="primary" icon={<ReloadOutlined />} onClick={() => void loadAll(undefined)}>
+            <Button type="primary" icon={<ReloadOutlined />} onClick={() => void loadAll()}>
               重试
             </Button>
           }

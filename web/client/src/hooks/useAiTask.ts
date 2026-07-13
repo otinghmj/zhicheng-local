@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { readFile } from '../lib/fs';
-import { useFsStore } from '../stores/fsStore';
 import { useSSEHandler } from './useSSE';
 import type { SSEEventData, SSEProgressPayload } from './useSSE';
 
@@ -44,20 +42,9 @@ export function useAiConfig() {
   return { config, refresh };
 }
 
-async function loadUserFiles(dirHandle: FileSystemDirectoryHandle | null) {
-  if (!dirHandle) return undefined;
-  const [cv, profileMode] = await Promise.all([
-    readFile(dirHandle, 'cv.md').catch(() => undefined),
-    readFile(dirHandle, 'modes/_profile.md').catch(() => undefined),
-  ]);
-  if (!cv && !profileMode) return undefined;
-  return { cv, profileMode };
-}
-
 export function useAiTask() {
   const [status, setStatus] = useState<AiTaskStatus>(initial);
   const activeJobId = useRef<string | null>(null);
-  const dirHandle = useFsStore((s) => s.dirHandle);
 
   const onProgress = useCallback((data: SSEEventData) => {
     if (data.jobId && data.jobId === activeJobId.current && data.progress) {
@@ -86,11 +73,11 @@ export function useAiTask() {
   const start = useCallback(async (mode: string, target: string, args?: Record<string, unknown>): Promise<{ jobId: string } | { error: string }> => {
     setStatus({ jobId: null, state: 'running', progress: { step: '正在启动', current: 0, total: 1 }, error: null });
     try {
-      const userFiles = await loadUserFiles(dirHandle);
+      // 用户文件（cv.md / modes/_profile.md）由服务端从磁盘读取，前端不再传。
       const response = await fetch('/api/ai-tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode, target, args, userFiles }),
+        body: JSON.stringify({ mode, target, args }),
       });
       if (!response.ok) {
         const body = await response.json().catch(() => ({ error: `HTTP ${response.status}` })) as { error?: string; details?: Record<string, string> };
@@ -107,7 +94,7 @@ export function useAiTask() {
       setStatus({ jobId: null, state: 'failed', progress: null, error: errorMsg });
       return { error: errorMsg };
     }
-  }, [dirHandle]);
+  }, []);
 
   const cancel = useCallback(async () => {
     const jobId = activeJobId.current;
