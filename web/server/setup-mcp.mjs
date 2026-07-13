@@ -133,6 +133,10 @@ async function main() {
   const detected = detectAgents();
 
   if (detected.length === 0) {
+    if (flag('quiet')) {
+      // 由 npm start 自动调用时不打扰：Claude Code 用项目根 .mcp.json 即可，无需本步。
+      return;
+    }
     console.log('❌ 未自动检测到 Claude Code / Cursor。');
     console.log('   手动指定：node setup-mcp.mjs --agent claude');
     console.log('   或打印通用配置：node setup-mcp.mjs --print');

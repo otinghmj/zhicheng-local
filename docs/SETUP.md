@@ -27,20 +27,23 @@ git clone <你的仓库地址> zhicheng
 cd zhicheng
 ```
 
-## 3. 一键初始化
+## 3. 一步启动（推荐）
 
 ```bash
-npm run setup
+npm start
 ```
 
-这个命令会做几件事：
+首次运行时，`npm start` 会自动完成初始化再启动网页，你不用单独跑 `npm run setup`。它会做几件事：
 
 - 安装前端和后端依赖。
-- 安装 Playwright Chromium。
-- 创建本地数据目录。
-- 创建个人配置文件模板。
+- 安装 Playwright Chromium（失败也不影响启动，只影响 PDF 生成）。
+- 创建本地数据目录和个人配置文件模板。
+- 写好本机 Agent（Claude Code / Cursor）的 MCP 配置。
+- 启动本地网页。
 
 Playwright 可以理解成“自动控制浏览器的工具”，这里主要用于生成 PDF。
+
+如果你想单独做初始化（不启动），仍可运行 `npm run setup`。
 
 ## 4. 检查环境
 
@@ -57,11 +60,7 @@ npm run doctor
 - 常用端口是否被占用。
 - 个人配置文件是否存在。
 
-## 5. 启动
-
-```bash
-npm start
-```
+## 5. 打开网页
 
 启动后打开：
 
@@ -69,7 +68,7 @@ npm start
 http://localhost:5173
 ```
 
-如果浏览器没有自动打开，就手动复制上面的地址。
+如果浏览器没有自动打开，就手动复制上面的地址。请用**独立的 Chrome / Edge 窗口**打开，不要用 VS Code 内嵌浏览器 / Firefox / Safari（选择工作目录依赖它们不支持的 File System Access API）。
 
 ## 6. 填写个人文件
 

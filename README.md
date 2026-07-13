@@ -85,9 +85,10 @@ MCP 是一种让网页后端和 AI Agent 通信的协议。你不用先理解它
 ```bash
 git clone https://github.com/otinghmj/zhicheng-local.git zhicheng
 cd zhicheng
-npm run setup
 npm start
 ```
+
+**一条 `npm start` 就够了**：首次运行会自动装依赖、创建个人配置文件、写好 MCP 配置，然后启动网页——不用再单独跑 `npm run setup` 和 `npm run mcp:setup`。（想单独初始化仍可 `npm run setup`。）
 
 打开：
 
@@ -177,22 +178,10 @@ jds/*
 
 ## 连接 AI Agent
 
-推荐先启动网页：
-
-```bash
-npm start
-```
-
-再配置 MCP：
-
-```bash
-npm run mcp:setup   # 自动写入 Claude Code / Cursor
-```
-
-然后重启你的 Agent。
+`npm start` 启动时会自动写好本机已安装 Agent（Claude Code / Cursor）的 MCP 配置，通常你只需**重启一次 Agent** 就连上了。
 
 - **Claude Code**：项目根已内置 `.mcp.json`，在本项目目录打开即自动识别，无需额外配置。
-- **Cursor**：`npm run mcp:setup` 会写入 `~/.cursor/mcp.json`。
+- **Cursor**：`npm start` / `npm run mcp:setup` 会写入 `~/.cursor/mcp.json`。
 - **Codex 或其它支持 MCP 的 Agent**：运行 `npm run mcp:print` 拿到可粘贴的配置片段，按各自方式添加 `http://localhost:3200/mcp`。
 
 连接后，Agent 请阅读项目根 [`AGENTS.md`](AGENTS.md)——那是一份面向任意 Agent 的操作契约，读完就能像用 skill 一样驱动职程（领任务、执行、写回文件）。你也可以在网页右上角打开 AI 设置，复制里面的提示词让 Agent 自己写配置。

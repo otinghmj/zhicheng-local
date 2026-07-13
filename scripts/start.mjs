@@ -37,6 +37,23 @@ function run(name, command, commandArgs, cwd) {
   });
 }
 
+// 等一次性子进程跑完（用于自举：初始化依赖、写 MCP 配置）。
+function runToCompletion(command, commandArgs, { cwd = root, allowFail = false } = {}) {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(command, commandArgs, {
+      cwd,
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+      env: process.env,
+    });
+    child.on('exit', (code) => {
+      if (code === 0 || allowFail) resolvePromise(code ?? 0);
+      else reject(new Error(`${command} ${commandArgs.join(' ')} 退出码 ${code}`));
+    });
+    child.on('error', (error) => { if (allowFail) resolvePromise(1); else reject(error); });
+  });
+}
+
 function openBrowser(url) {
   if (noOpen) return;
   const command = process.platform === 'darwin'
@@ -60,12 +77,24 @@ function shutdown(code = 0) {
 }
 
 async function main() {
-  for (const path of ['web/server/node_modules', 'web/client/node_modules']) {
-    if (!await exists(path)) {
-      console.error(`缺少依赖目录：${path}`);
-      console.error('请先运行：npm run setup');
-      process.exit(1);
-    }
+  // 自举：缺依赖就自动初始化，把 setup + start 合并成一条命令。用 --no-setup 跳过。
+  const depsMissing = [];
+  for (const path of ['node_modules', 'web/server/node_modules', 'web/client/node_modules']) {
+    if (!await exists(path)) depsMissing.push(path);
+  }
+  if (depsMissing.length && !args.has('--no-setup')) {
+    console.log(`首次运行：检测到缺少依赖（${depsMissing.join('、')}），正在自动初始化...\n`);
+    await runToCompletion(process.execPath, [resolve(root, 'scripts/setup.mjs')]);
+    console.log('');
+  } else if (depsMissing.length) {
+    console.error(`缺少依赖目录：${depsMissing.join('、')}`);
+    console.error('请先运行：npm run setup');
+    process.exit(1);
+  }
+
+  // best-effort 写好 MCP 配置，让已安装的 Agent 直接接上（失败不影响启动）。
+  if (!args.has('--no-mcp')) {
+    await runToCompletion(process.execPath, [resolve(root, 'web/server/setup-mcp.mjs'), '--quiet'], { allowFail: true });
   }
 
   console.log('正在启动职程本地版...');
