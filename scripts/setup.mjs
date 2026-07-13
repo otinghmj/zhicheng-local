@@ -94,7 +94,14 @@ async function main() {
   }
 
   if (!skipPlaywright) {
-    await run('npx', ['playwright', 'install', 'chromium']);
+    // Playwright Chromium 仅用于 PDF 生成，下载失败不应中断整个初始化（前后端依赖此时已装好）。
+    try {
+      await run('npx', ['playwright', 'install', 'chromium']);
+    } catch (error) {
+      log(`\n[WARN] Playwright Chromium 安装失败：${error.message}`);
+      log('[WARN] 这只影响 PDF 生成（npm run pdf）。前后端已就绪，可正常启动。');
+      log('[WARN] 需要 PDF 时可稍后重试：npx playwright install chromium');
+    }
   }
 
   log('\n初始化完成。下一步：');
