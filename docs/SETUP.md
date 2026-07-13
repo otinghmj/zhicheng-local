@@ -68,7 +68,7 @@ npm run doctor
 http://localhost:5173
 ```
 
-如果浏览器没有自动打开，就手动复制上面的地址。请用**独立的 Chrome / Edge 窗口**打开，不要用 VS Code 内嵌浏览器 / Firefox / Safari（选择工作目录依赖它们不支持的 File System Access API）。
+如果浏览器没有自动打开，就手动复制上面的地址。网页是**只读看板**，用什么浏览器都行（Chrome / Edge / Firefox / Safari，甚至 VS Code 内嵌浏览器），采集与评估等写操作交给你的 AI Agent 完成。
 
 ## 6. 填写个人文件
 
