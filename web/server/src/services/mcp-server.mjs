@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 
-import { claimAgentTask, completeAgentTask, updateAgentProgress, getCurrentAiJob, setAgentCountProvider, setAgentExecutor, claimOpsTask, completeOpsTask } from './ai-task-runner.mjs';
+import { claimAgentTask, completeAgentTask, updateAgentProgress, getCurrentAiJob, setAgentCountProvider, setAgentExecutor } from './ai-task-runner.mjs';
 import { emitAgentChanged } from './event-bus.mjs';
 
 const sessions = new Map();
@@ -108,39 +108,6 @@ function createMcpServer() {
         return { content: [{ type: 'text', text: JSON.stringify({ status: 'idle', message: '当前没有运行中的任务' }) }] };
       }
       return { content: [{ type: 'text', text: JSON.stringify({ status: 'running', jobId: job.jobId, mode: job.mode, target: job.target, progress: job.progress }) }] };
-    },
-  );
-
-  // ── Ops tasks (Chrome launch, script execution) ─────────────────────────
-
-  server.tool(
-    'claim_ops_task',
-    '领取待执行的运维任务（启动 Chrome、执行脚本等）。返回任务详情，无任务时返回空。',
-    {},
-    async () => {
-      const task = claimOpsTask();
-      if (!task) {
-        return { content: [{ type: 'text', text: JSON.stringify({ status: 'empty', message: '当前没有待执行的运维任务' }) }] };
-      }
-      return { content: [{ type: 'text', text: JSON.stringify({ status: 'claimed', ...task }) }] };
-    },
-  );
-
-  server.tool(
-    'complete_ops_task',
-    '提交运维任务的执行结果。',
-    {
-      jobId: z.string().describe('任务 ID'),
-      success: z.boolean().describe('是否成功'),
-      result: z.unknown().optional().describe('执行结果（成功时）'),
-      error: z.string().optional().describe('错误信息（失败时）'),
-    },
-    async ({ jobId, success, result, error }) => {
-      const job = completeOpsTask(jobId, { success, result, error });
-      if (!job) {
-        return { content: [{ type: 'text', text: JSON.stringify({ status: 'not_found' }) }], isError: true };
-      }
-      return { content: [{ type: 'text', text: JSON.stringify({ status: 'completed', state: job.state }) }] };
     },
   );
 

@@ -100,9 +100,9 @@ npm start
 npm run mcp:setup
 ```
 
-然后重启 Claude Code 或 Cursor。
+然后重启你的 Agent。Claude Code 在本项目目录打开即自动识别（项目根内置 `.mcp.json`）；Cursor 由上面命令写入配置；Codex 等其它 Agent 运行 `npm run mcp:print` 拿配置片段自行添加。
 
-MCP 可以理解成“网页和 AI Agent 之间的通信协议”。连接后，网页可以把评估、报告生成、面试准备等任务交给 Agent 执行。
+MCP 可以理解成“网页和 AI Agent 之间的通信协议”。连接后，网页可以把评估、报告生成、面试准备等任务交给 Agent 执行。Agent 连接后请阅读项目根 `AGENTS.md`——一份面向任意 Agent 的操作契约。
 
 你也可以在网页右上角打开 AI 设置，复制提示词给你的 AI 助手，让它自动配置。
 
@@ -112,8 +112,8 @@ MCP 可以理解成“网页和 AI Agent 之间的通信协议”。连接后，
 npm run setup      # 初始化
 npm run doctor     # 检查环境
 npm start          # 启动本地 Web
-npm run agent      # 启动本地 Agent 连接器
-npm run mcp:setup  # 自动写入 MCP 配置
+npm run mcp:setup  # 为 Claude Code / Cursor 自动写入 MCP 配置
+npm run mcp:print  # 打印任意 Agent 可用的 MCP 配置
 npm run mcp:remove # 移除 MCP 配置
 npm run 51job:opencli # 运行前程无忧采集器
 npm run liepin:dom    # 运行猎聘采集器
@@ -125,7 +125,7 @@ npm run liepin:dom    # 运行猎聘采集器
 zhicheng setup
 zhicheng doctor
 zhicheng start
-zhicheng agent
+zhicheng mcp:setup
 ```
 
 ## 9. 当前支持的采集器

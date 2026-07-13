@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "zhicheng": {
+      "type": "http",
+      "url": "http://localhost:3200/mcp"
+    }
+  }
+}

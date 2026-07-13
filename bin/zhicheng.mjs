@@ -14,7 +14,8 @@ const commands = {
   doctor: ['scripts/doctor.mjs'],
   start: ['scripts/start.mjs'],
   dev: ['scripts/start.mjs', '--dev'],
-  agent: ['web/server/mcp-agent.mjs', 'http://localhost:3200/mcp'],
+  'mcp:setup': ['web/server/setup-mcp.mjs'],
+  'mcp:print': ['web/server/setup-mcp.mjs', '--print'],
 };
 
 function printHelp() {
@@ -26,7 +27,8 @@ function printHelp() {
   zhicheng doctor     检查运行环境
   zhicheng start      启动本地 Web
   zhicheng dev        以开发模式启动
-  zhicheng agent      启动本地 Agent 连接器
+  zhicheng mcp:setup  为 Claude Code / Cursor 写入 MCP 配置
+  zhicheng mcp:print  打印任意 Agent 可用的 MCP 配置
 
 如果你还没有全局安装，也可以在项目目录运行：
   npx . setup

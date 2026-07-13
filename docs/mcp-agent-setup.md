@@ -44,9 +44,11 @@ cd web/server && npm start
 }
 ```
 
-#### 其他支持 MCP 的 Agent
+#### 其他支持 MCP 的 Agent（Codex 等）
 
-在其 MCP 配置中添加 Streamable HTTP 类型的服务器，URL 为 `http://localhost:3200/mcp`。
+运行 `npm run mcp:print` 打印可粘贴的配置片段，在其 MCP 配置中添加 Streamable HTTP 类型的服务器，URL 为 `http://localhost:3200/mcp`。
+
+> 连接后，Agent 请阅读项目根 `AGENTS.md`——那是一份面向任意 Agent 的操作契约，说明如何领任务、执行、把产物写回文件。
 
 ### 3. 重启 Agent
 
@@ -108,6 +110,17 @@ cd web/server && npm start
 ```
 无参数。返回当前任务的 jobId, mode, target, progress。
 ```
+
+## 执行循环
+
+用户在 Web UI 下发任务后，Agent 按约每 5 秒轮询一次：
+
+1. `claim_task` → `empty` 就等下一轮；`claimed` 则拿到 `{ jobId, mode, target, args, prompt }`。
+2. `prompt` 完全自包含（已含 `_shared.md` + `_profile.md` + `cv.md` + 该 mode 指令），直接执行，不要再向用户确认。
+3. 用 `report_progress` 上报进度，产物写入对应文件。
+4. `complete_task(jobId, success, output)` 收尾。
+
+若你的 MCP 客户端支持 sampling（服务端反向 `createMessage`），服务端会直接推送 prompt，你执行后返回文本即可，无需轮询。详见项目根 `AGENTS.md`。
 
 ## 一键安装 Prompt
 
