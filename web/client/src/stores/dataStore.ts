@@ -112,7 +112,7 @@ async function loadReportsFromDir(
 }
 
 export const useDataStore = create<DataState>((set, get) => ({
-  loading: false,
+  loading: true,
   error: null,
 
   states: [],
