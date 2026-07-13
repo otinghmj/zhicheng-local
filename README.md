@@ -21,9 +21,9 @@
 - 需要时生成定制版 PDF 简历。
 - 维护投递跟踪表。
 - 整理面试准备材料和故事库。
-- 通过 MCP 连接 Claude Code、Cursor、Codex 这类本地 Agent。
+- 通过 MCP 连接 Claude Code、Cursor、Codex 或**任意支持 MCP 的 Agent**。
 
-MCP 是一种让网页后端和 AI Agent 通信的协议。你不用先理解它，先知道一件事就够了：连接后，网页可以把“评估这个岗位”“生成面试准备”这类任务交给本地 Agent 做。
+MCP 是一种让网页后端和 AI Agent 通信的协议。你不用先理解它，先知道一件事就够了：连接后，网页可以把“评估这个岗位”“生成面试准备”这类任务交给本地 Agent 做。项目根有一份面向任意 Agent 的操作契约 [`AGENTS.md`](AGENTS.md)——你的 Agent 读完就能像用一个 skill 一样驱动职程（领任务、执行、把产物写回文件），不限于某一家工具。
 
 ## 适合谁
 
@@ -96,6 +96,8 @@ http://localhost:5173
 ```
 
 第一次打开时，页面会让你选择一个本地工作目录。建议新建一个空文件夹专门放求职数据。
+
+> ⚠️ 请用**独立的 Chrome 或 Edge 窗口**打开 `http://localhost:5173`，不要用 VS Code 内嵌的 Simple Browser、Firefox 或 Safari。选择工作目录依赖浏览器的「文件系统访问」能力（File System Access API），只有前者支持；用其它环境打开会卡在选目录这一步、进不了后续功能。
 
 ## 常用命令
 
