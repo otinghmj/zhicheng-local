@@ -6,12 +6,21 @@ const FALLBACK_PORTS = [9223, 9222, 9224];
 const USER_DATA_DIR = `${os.homedir()}/chrome-boss-debug`;
 
 function findChromePath() {
+  if (process.env.CHROME_PATH && existsSync(process.env.CHROME_PATH)) return process.env.CHROME_PATH;
   if (os.platform() === 'darwin') {
     const candidates = [
       '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
       `${os.homedir()}/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`,
     ];
     for (const p of candidates) { if (existsSync(p)) return p; }
+  }
+  if (os.platform() === 'win32') {
+    const candidates = [
+      `${process.env.PROGRAMFILES ?? 'C:\\Program Files'}\\Google\\Chrome\\Application\\chrome.exe`,
+      `${process.env['PROGRAMFILES(X86)'] ?? 'C:\\Program Files (x86)'}\\Google\\Chrome\\Application\\chrome.exe`,
+      `${process.env.LOCALAPPDATA ?? ''}\\Google\\Chrome\\Application\\chrome.exe`,
+    ];
+    for (const p of candidates) { if (p && existsSync(p)) return p; }
   }
   if (os.platform() === 'linux') {
     const candidates = ['google-chrome-stable', 'google-chrome', 'chromium-browser', 'chromium'];

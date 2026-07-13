@@ -35,6 +35,44 @@ export function DirectoryPicker({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  if (status === 'unsupported') {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', padding: 16 }}>
+        <Card style={{ maxWidth: 560, width: '100%' }}>
+          <Result
+            status="warning"
+            title="当前浏览器不支持本地目录访问"
+            subTitle={
+              <div style={{ textAlign: 'left', lineHeight: 1.9 }}>
+                <p>
+                  本地版需要浏览器的「文件系统访问」能力（File System Access API）来读写你选择的工作目录，
+                  但当前环境不支持它。<strong>最常见的原因是用 VS Code 内置的 Simple Browser / 内嵌预览窗口打开了本页。</strong>
+                </p>
+                <p style={{ marginBottom: 4 }}>请改用以下方式打开，采集等功能即可正常使用：</p>
+                <ol style={{ margin: 0, paddingLeft: 20 }}>
+                  <li>
+                    用<strong>独立的 Chrome 或 Edge 窗口</strong>（不是 VS Code 内嵌浏览器）访问：
+                    <div style={{ margin: '6px 0' }}>
+                      <code style={{ background: 'var(--co-fill-2, #f0f0f0)', padding: '2px 8px', borderRadius: 4 }}>
+                        http://localhost:5173
+                      </code>
+                    </div>
+                  </li>
+                  <li>确保地址是 localhost 或 https（安全上下文），Firefox / Safari 暂不支持该能力。</li>
+                </ol>
+              </div>
+            }
+            extra={
+              <Button type="primary" icon={<ReloadOutlined />} onClick={() => window.location.reload()}>
+                我已在 Chrome 中打开，重新检测
+              </Button>
+            }
+          />
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
       <Card style={{ maxWidth: 480, width: '100%', textAlign: 'center' }}>

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import {
   pickDirectory as pickDir,
+  isFsAccessSupported,
   saveHandle,
   loadHandle,
   clearHandle,
@@ -27,7 +28,7 @@ const EMPTY_FILES: Record<string, string> = {
   'config/profile.yml': '# Profile\n',
 };
 
-type FsStatus = 'idle' | 'restoring' | 'ready' | 'denied' | 'error';
+type FsStatus = 'idle' | 'restoring' | 'ready' | 'denied' | 'error' | 'unsupported';
 
 interface FsState {
   dirHandle: FileSystemDirectoryHandle | null;
@@ -46,6 +47,10 @@ export const useFsStore = create<FsState>((set, get) => ({
   error: null,
 
   pickDirectory: async () => {
+    if (!isFsAccessSupported()) {
+      set({ status: 'unsupported', error: null });
+      return;
+    }
     try {
       const handle = await pickDir();
       await saveHandle(handle);
@@ -56,11 +61,19 @@ export const useFsStore = create<FsState>((set, get) => ({
       set({ dirHandle: handle, status: 'ready', error: null });
     } catch (e: unknown) {
       if (e instanceof DOMException && e.name === 'AbortError') return;
+      if (e instanceof Error && e.message === 'UNSUPPORTED_BROWSER') {
+        set({ status: 'unsupported', error: null });
+        return;
+      }
       set({ status: 'error', error: (e as Error).message });
     }
   },
 
   restoreHandle: async () => {
+    if (!isFsAccessSupported()) {
+      set({ status: 'unsupported', error: null });
+      return;
+    }
     set({ status: 'restoring' });
     try {
       const handle = await loadHandle();

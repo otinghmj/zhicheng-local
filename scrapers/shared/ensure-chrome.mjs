@@ -26,7 +26,7 @@ import path from "node:path";
 const FALLBACK_PORTS = [9223, 9222, 9224];
 const USER_DATA_DIR  = path.join(os.homedir(), "chrome-boss-debug"); // path.join 跨平台
 
-// C2：按操作系统返回 Chrome 可执行路径（自动适配 Mac / Windows，Linux 不在支持范围）。
+// C2：按操作系统返回 Chrome 可执行路径（自动适配 Mac / Windows / Linux）。
 // env CHROME_PATH 始终最高优先，换安装位置/换 OS 时贴一张便签即可。
 function defaultChromePath() {
   if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
@@ -38,6 +38,16 @@ function defaultChromePath() {
     ];
     for (const p of candidates) { try { if (p && fs.existsSync(p)) return p; } catch {} }
     return candidates[0]; // 都没探到就返回标准安装位置作兜底
+  }
+  if (process.platform === "linux") {
+    const names = ["google-chrome-stable", "google-chrome", "chromium-browser", "chromium"];
+    for (const dir of ["/usr/bin", "/usr/local/bin", "/snap/bin"]) {
+      for (const name of names) {
+        const p = path.join(dir, name);
+        try { if (fs.existsSync(p)) return p; } catch {}
+      }
+    }
+    return "google-chrome"; // 交给 PATH 兜底
   }
   return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"; // 默认 macOS
 }
@@ -101,14 +111,20 @@ async function autoStartChrome(preferredUrl, launchMode, waitMs = 8000) {
     ],
     { stdio: "ignore", detached: true },  // headed（不加 --headless），更像真人、便于首次登录
   );
+  // 必须挂 error 处理：否则 Chrome 路径不对时 spawn 抛出的 'error' 事件无人接管，会让整个进程崩溃并打印堆栈，
+  // 而不是走到下面的"未就绪 → 友好指引"分支。
+  let spawnError = null;
+  child.on("error", (e) => { spawnError = e; });
   child.unref();
 
   const deadline = Date.now() + waitMs;
   while (Date.now() < deadline) {
     await sleep(500);
+    if (spawnError) throw new Error(`无法启动 Chrome（${exe}）：${spawnError.message}`);
     const info = await probeCdp(preferredUrl);
     if (info) return info;
   }
+  if (spawnError) throw new Error(`无法启动 Chrome（${exe}）：${spawnError.message}`);
   return null;
 }
 

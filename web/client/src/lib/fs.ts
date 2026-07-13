@@ -44,7 +44,19 @@ export async function clearHandle(userId?: number | string): Promise<void> {
   });
 }
 
+/**
+ * 是否支持 File System Access API（window.showDirectoryPicker）。
+ * 只有 Chrome/Edge 等 Chromium 浏览器的独立窗口、安全上下文（localhost/https）才支持。
+ * VS Code 内嵌 Simple Browser、Firefox、Safari 均不支持——用于给出友好引导，避免抛出看不懂的报错。
+ */
+export function isFsAccessSupported(): boolean {
+  return typeof window !== 'undefined' && typeof window.showDirectoryPicker === 'function';
+}
+
 export async function pickDirectory(): Promise<FileSystemDirectoryHandle> {
+  if (!isFsAccessSupported()) {
+    throw new Error('UNSUPPORTED_BROWSER');
+  }
   return window.showDirectoryPicker({ mode: 'readwrite' });
 }
 

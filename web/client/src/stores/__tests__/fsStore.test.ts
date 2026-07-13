@@ -3,6 +3,7 @@ import { useFsStore } from '../fsStore';
 
 vi.mock('../../lib/fs', () => ({
   pickDirectory: vi.fn(),
+  isFsAccessSupported: vi.fn(() => true),
   saveHandle: vi.fn(),
   loadHandle: vi.fn(),
   clearHandle: vi.fn(),
@@ -74,6 +75,15 @@ describe('fsStore', () => {
 
       expect(useFsStore.getState().status).toBe('idle');
     });
+
+    it('sets unsupported status when File System Access API is unavailable', async () => {
+      vi.mocked(fsMock.isFsAccessSupported).mockReturnValueOnce(false);
+
+      await useFsStore.getState().pickDirectory();
+
+      expect(useFsStore.getState().status).toBe('unsupported');
+      expect(fsMock.pickDirectory).not.toHaveBeenCalled();
+    });
   });
 
   describe('restoreHandle', () => {
@@ -112,6 +122,15 @@ describe('fsStore', () => {
       await useFsStore.getState().restoreHandle();
 
       expect(fsMock.loadHandle).toHaveBeenCalledWith();
+    });
+
+    it('sets unsupported status when File System Access API is unavailable', async () => {
+      vi.mocked(fsMock.isFsAccessSupported).mockReturnValueOnce(false);
+
+      await useFsStore.getState().restoreHandle();
+
+      expect(useFsStore.getState().status).toBe('unsupported');
+      expect(fsMock.loadHandle).not.toHaveBeenCalled();
     });
   });
 
