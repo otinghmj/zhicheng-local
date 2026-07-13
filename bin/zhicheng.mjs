@@ -11,6 +11,7 @@ const rest = args.slice(1);
 
 const commands = {
   setup: ['scripts/setup.mjs'],
+  init: ['scripts/init-workspace.mjs'],
   doctor: ['scripts/doctor.mjs'],
   start: ['scripts/start.mjs'],
   dev: ['scripts/start.mjs', '--dev'],
@@ -24,6 +25,7 @@ function printHelp() {
 
 用法：
   zhicheng setup      安装依赖并初始化本地文件
+  zhicheng init       只建立工作目录（数据目录 + 个人文件模板，不装依赖）
   zhicheng doctor     检查运行环境
   zhicheng start      启动本地 Web
   zhicheng dev        以开发模式启动

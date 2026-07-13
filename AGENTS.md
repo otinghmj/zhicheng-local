@@ -1,83 +1,79 @@
 # AGENTS.md — 用任意 Agent 驱动职程
 
-这份文件是**给 AI Agent 读的操作契约**。无论你是 Claude Code、Cursor、Codex 还是其它支持 MCP 的工具，读完这一页就能像用一个 skill 一样驱动「职程本地版」。
+这份文件是**给 AI Agent 读的操作契约**。无论你是 Claude Code、Cursor、Codex 还是其它工具，读完这一页就能像用一个 skill 一样端到端驱动「职程本地版」。
 
 > 人类用户看仓库结构和边界，请读 `CLAUDE.md`；文件归属规则见 `DATA_CONTRACT.md`。
 
-## 你的角色
+## 核心理念
 
-职程本地版是一个跑在用户电脑上的 AI 求职工作台。分工是：
+**一切操作由你（Agent）用自己的 Read / Write / Bash 工具直接完成；本地 Web 前端只是只读看板，用来展示你写出的结果。** 用户不在网页里点按钮，只对你说一句话（"采集猎聘北京的AI岗位并评估前10个"），你负责把整条链路跑完，产物写进工作目录，用户打开看板就能看到。
 
-- **Web Server（本地 Express，`http://localhost:3200`）**：统一操作入口。它自己直接负责本地"体力活"——启动调试 Chrome、跑采集脚本、生成 PDF、读写数据文件。
-- **你（Agent）**：只负责需要 LLM 的"脑力活"——岗位评估、报告生成、面试准备、简历打磨、采集配置建议等。Web UI 把这类任务下发，由你执行并把产物写回文件。
+这样也顺带避免了浏览器环境限制——用户用任何浏览器（含 VS Code 内嵌）看看板都行，因为看板只读、不碰文件系统。
 
-你**不需要**自己去启动 Chrome 或跑采集脚本（那是服务端的事）。你要做的是领任务、用你自己的工具/模型执行 prompt、把结果写进指定文件。
+三个角色：
 
-## 一、连接（一次性）
+- **你（Agent）= 执行器**：建工作目录、跑采集脚本、做评估/报告/面试准备、写产物。
+- **Web Server（本地，`http://localhost:3200`）= 只读展示 API**：从工作目录读数据（`/api/data/*`），配合 SSE 实时推给看板。
+- **浏览器前端 = 纯看板**：只发 HTTP GET，不做任何写操作。
 
-MCP 端点固定为 `http://localhost:3200/mcp`（Streamable HTTP）。
+## 端到端 Playbook（主线）
 
-- **Claude Code**：项目根已内置 `.mcp.json`，在本项目目录打开即自动识别；或运行 `npm run mcp:setup`。
-- **Cursor**：`npm run mcp:setup` 会写入 `~/.cursor/mcp.json`。
-- **任意其它 Agent**：运行 `npm run mcp:print` 拿到可粘贴的配置片段，按你自己的 MCP 配置方式添加该 URL。
+### 0. 确保工作目录就绪（每次开工先做）
 
-连接后你会获得 4 个 MCP 工具：`claim_task`、`report_progress`、`complete_task`、`get_status`。
+```bash
+node scripts/init-workspace.mjs        # 幂等：建 data/reports/output/... + 个人文件模板
+```
 
-## 二、执行循环（核心）
+若 `cv.md` / `config/profile.yml` 仍是模板占位，先提示用户填，或按现有内容继续并说明。
 
-用户在 Web UI 点"AI 评估""一键 AI 采集""生成报告"等按钮时，服务端会把任务入队。你有两种方式拿到它：
+### 1. 采集岗位
 
-**方式 A · 轮询（对任意 Agent 都通用，推荐）**
+用 **`job-scraper` 技能**（搜索职位 + 拉 JD 详情，覆盖猎聘 / 前程无忧），或直接跑脚本：
 
-当用户在使用职程时，按固定间隔（约每 5 秒）执行以下循环：
+```bash
+node scrapers/liepin/liepin-dom.mjs --query "AI应用工程师" --city 010 --max-pages 3
+node scrapers/51job/51job-opencli.mjs --query "质量工程师" --city 030200 --max-pages 3
+```
 
-1. 调 `claim_task`。返回 `status: "empty"` 就等下一轮；返回 `status: "claimed"` 则拿到 `{ jobId, mode, target, args, prompt }`。
-2. `prompt` 是**完全自包含**的——已拼好共享上下文（`modes/_shared.md`）、用户画像（`modes/_profile.md`）、简历（`cv.md`）和该 mode 的指令。直接按 `prompt` 执行，用你自己的 Read/Write/WebSearch 等工具，**不要再向用户确认**。
-3. 执行中用 `report_progress(jobId, step, current, total)` 上报进度，Web UI 会实时显示。
-4. 产物按 mode 要求写入对应文件（见"四、文件契约"）。
-5. 调 `complete_task(jobId, success, output)` 收尾；失败则 `complete_task(jobId, false, error=...)`。
+采集依赖用户本机 Chrome 登录态，Chrome 就绪由 `scrapers/shared/ensure-chrome.mjs` 处理；采集配置在 `portals.yml`，完整流程见 `modes/scan.md`。
 
-**方式 B · 采样推送（若你的 MCP 客户端支持 sampling）**
+### 2. 评估岗位
 
-有些客户端支持服务端反向 `createMessage`。这种情况下服务端会直接把 `prompt` 推给你，你执行后返回文本即可，无需轮询。不确定是否支持就用方式 A。
+对每个 JD，读 `modes/_shared.md` + `modes/_profile.md` + `cv.md` + `article-digest.md`，按 `modes/oferta.md`（单个）/ `modes/ofertas.md`（多个）/ `modes/pre-filter.md`（初筛）执行：
 
-## 三、可用 mode 一览
+- 报告写 `reports/*.md`，报告头必须含 `**URL:**`。
+- 投递跟踪：**不要直接改 `data/applications.md`**，把新增行以 TSV 写到 `batch/tracker-additions/`。
 
-任务的 `mode` 字段对应 `modes/<mode>.md` 里的详细指令（已随 prompt 一起下发）。常用：
+### 3. 其它模式（按需）
 
-| mode | 作用 |
-|------|------|
-| `scan` | 按 `portals.yml` 生成/优化采集配置、做初筛 |
-| `oferta` / `ofertas` | 单个 / 多个岗位评估打分 |
-| `pre-filter` | 岗位批量初筛去噪 |
-| `pipeline` / `auto-pipeline` | 处理 URL 收件箱、串起评估流水线 |
-| `pdf` | 生成简历 / cover letter PDF（底层调 `node generate-pdf.mjs`） |
-| `apply` | 投递材料助手 |
-| `contacto` | LinkedIn 触达文案 |
-| `interview-prep` / `deep-prep-*` | 面试准备、沉浸训练、角色扮演、模拟 |
-| `cv-deep-dive` | 简历深挖打磨 |
-| `tracker` | 更新投递跟踪 |
-| `project` / `training` | 作品集项目 / 培训评估 |
+读对应 `modes/<mode>.md` 执行并写回：`pdf`（`node generate-pdf.mjs` → `output/`）、`apply`、`contacto`、`interview-prep` / `deep-prep-*`、`cv-deep-dive`、`pipeline` / `auto-pipeline`、`tracker`、`project` / `training`。完整允许列表见 `web/server/src/services/ai-task-runner.mjs` 的 `ALLOWED_MODES`。
 
-完整允许列表见 `web/server/src/services/ai-task-runner.mjs` 的 `ALLOWED_MODES`。
+### 4. 让用户看结果
 
-## 四、文件契约（读哪写哪）
+产物都在工作目录。若看板没开就起一下：
 
-只读（用户数据，**绝不修改**）：`cv.md`、`config/profile.yml`、`modes/_profile.md`、`article-digest.md`、`portals.yml`。
+```bash
+npm start        # 首次自动初始化；前端 5173 / 后端 3200
+```
 
-写入（你的产物）：
+前端从 `/api/data/*` 读你写的文件并 SSE 实时刷新。
 
-- 评估报告 → `reports/*.md`（报告头必须含 `**URL:**`）。
-- 投递跟踪 → **不要直接改 `data/applications.md`**；把新增行以 TSV 写到 `batch/tracker-additions/`。
-- PDF → `output/`。
-- 采集配置 → `portals.yml`（`scan` mode 的 `generate-config`）。
-- 面试材料 → `interview-prep/`。
-- 岗位描述 → `jds/`。
+## 文件契约
 
-完整归属见 `DATA_CONTRACT.md`。全局评分规则、NEVER/ALWAYS 清单见 `modes/_shared.md`（每个任务 prompt 里都已包含，遵守即可）。
+只读、绝不修改：`cv.md`、`config/profile.yml`、`modes/_profile.md`、`article-digest.md`、`portals.yml`。
 
-## 五、排查
+写产物：`reports/*.md`（头含 `**URL:**`）、`output/` PDF、`interview-prep/`、`jds/`；投递跟踪写 TSV 到 `batch/tracker-additions/`。完整归属见 `DATA_CONTRACT.md`；评分与全局 NEVER/ALWAYS 规则见 `modes/_shared.md`。
 
-- Web UI 显示"暂无 Agent 连接"：确认后端已 `npm start`，且你的 MCP 配置指向 `http://localhost:3200/mcp`，然后重启 Agent。用 `npm run mcp:print` 核对配置。
-- `claim_task` 一直 `empty`：说明用户还没从 Web UI 下发任务，正常。
-- 采集/Chrome 相关的启动由服务端和 Web UI 负责，不在你的职责内；采集脚本跨平台由 `scrapers/shared/ensure-chrome.mjs` 处理。
+## 另一条路径：网页下发的任务（MCP 队列，兜底）
+
+给"想在网页里点按钮操作"的用户兜底。连接 MCP（`http://localhost:3200/mcp`，Streamable HTTP）：
+
+- Claude Code：项目根内置 `.mcp.json`，打开本项目即识别；Cursor：`npm run mcp:setup`；其它：`npm run mcp:print` 拿配置。
+
+连接后按轮询循环处理网页下发的任务：约每 5 秒 `claim_task` → 拿到自包含 `prompt` 就执行（不要再向用户确认）→ `report_progress` 上报 → `complete_task` 收尾。工具与细节见 `docs/mcp-agent-setup.md`。
+
+## 排查
+
+- 看板显示"暂无数据"：确认 `npm start` 已起、工作目录里有你写的文件。
+- 采集报错：多为 Chrome 未登录目标平台；先让用户在 Chrome 登录，再重试。
+- 网页任务路径 `claim_task` 一直 empty：说明用户没从网页下发任务，正常——直驱路径不需要它。

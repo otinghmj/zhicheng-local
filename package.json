@@ -7,6 +7,7 @@
   },
   "scripts": {
     "setup": "node scripts/setup.mjs",
+    "init": "node scripts/init-workspace.mjs",
     "doctor": "node scripts/doctor.mjs",
     "start": "node scripts/start.mjs",
     "mcp:setup": "node web/server/setup-mcp.mjs",

@@ -184,7 +184,19 @@ jds/*
 - **Cursor**：`npm start` / `npm run mcp:setup` 会写入 `~/.cursor/mcp.json`。
 - **Codex 或其它支持 MCP 的 Agent**：运行 `npm run mcp:print` 拿到可粘贴的配置片段，按各自方式添加 `http://localhost:3200/mcp`。
 
-连接后，Agent 请阅读项目根 [`AGENTS.md`](AGENTS.md)——那是一份面向任意 Agent 的操作契约，读完就能像用 skill 一样驱动职程（领任务、执行、写回文件）。你也可以在网页右上角打开 AI 设置，复制里面的提示词让 Agent 自己写配置。
+连接后，Agent 请阅读项目根 [`AGENTS.md`](AGENTS.md)——那是一份面向任意 Agent 的操作契约，读完就能像用 skill 一样驱动职程。你也可以在网页右上角打开 AI 设置，复制里面的提示词让 Agent 自己写配置。
+
+### 用一句话驱动（推荐用法）
+
+推荐的用法不是在网页里点按钮，而是**直接对你的 Agent 说一句话**，让它端到端把活干完：
+
+> “采集猎聘北京的 AI 应用工程师岗位，评估前 10 个并生成报告。”
+
+Agent 会自己：建工作目录（`node scripts/init-workspace.mjs`）→ 跑采集脚本 → 按 `modes/` 里的指令评估 → 把报告写进 `reports/`、投递跟踪写进 `batch/tracker-additions/`。
+
+**网页此时只是看板**：打开 `http://localhost:5173` 看 Agent 写出的结果（Dashboard、报告、Pipeline、投递、面试准备），页面通过后端 `/api/data/*` 只读展示、实时刷新。所有写操作都由 Agent 完成，所以用什么浏览器看都行。
+
+只想建工作目录（不装依赖、不启动）时，可单独运行 `npm run init`。
 
 ## 本地服务
 
