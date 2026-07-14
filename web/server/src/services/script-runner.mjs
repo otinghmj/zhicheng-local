@@ -10,7 +10,7 @@ import { emitJobProgress, emitJobCompleted, emitJobFailed } from './event-bus.mj
 const MAX_OUTPUT_BYTES = 10 * 1024 * 1024;
 const TIMEOUT_MS = 10 * 60 * 1000;
 const LOG_TAIL_LINES = 200;
-const SYNC_SCRIPTS = new Set(['generate-pdf']);
+const SYNC_SCRIPTS = new Set(['generate-pdf', 'doctor']);
 const LOCAL_ONLY_SCRIPTS = new Set(['generate-pdf']);
 
 const jobs = new Map();

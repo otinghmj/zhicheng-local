@@ -90,6 +90,8 @@ git clone https://github.com/otinghmj/zhicheng-local.git zhicheng && cd zhicheng
 
 跑起来后打开只读看板 `http://localhost:5173`（Chrome / Edge / Firefox / Safari，甚至 VS Code 内嵌浏览器都行）
 
+网页只负责展示、搜索和筛选数据。采集职位、生成报告或 PDF、修改简历和投递记录等操作，请直接用自然语言交给 AI Agent；完成后刷新网页查看结果。
+
 > 采集要复用你 Chrome 里的登录态，先在 Chrome 登录目标招聘网站（猎聘 / 51job）
 
 ## 命令速查
@@ -99,7 +101,7 @@ git clone https://github.com/otinghmj/zhicheng-local.git zhicheng && cd zhicheng
 | `npm start` | 一条命令冷启动：首次自动装依赖 + 建工作目录 + 写 MCP 配置 + 启动网页 |
 | `npm run init` | 只建工作目录（数据目录 + 个人文件模板，不装依赖、不启动） |
 | `npm run setup` | 只做初始化（装依赖 + 建工作目录），不启动 |
-| `npm run doctor` | 检查本机环境（Node、Chrome、端口、依赖） |
+| `npm run doctor` | 检查本机环境（Node、Chrome、端口、依赖）；网页会读取同一份检查结果显示环境状态 |
 | `npm run mcp:setup` | 给本机 Claude Code / Cursor 写入 MCP 配置 |
 | `npm run mcp:print` | 打印任意 Agent 可用的 MCP 配置片段 |
 

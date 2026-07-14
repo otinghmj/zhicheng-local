@@ -150,14 +150,8 @@ export function CV() {
   }, [syncProfileToYaml]);
   const [notice, noticeContext] = message.useMessage();
 
-  const startBatchPdf = async () => {
-    const response = await fetch('/api/scripts/batch-pdf-gen', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: '{}',
-    });
-    if (response.ok) void notice.success('批量 PDF 任务已启动');
-    else void notice.error(response.status === 409 ? '批量 PDF 任务正在运行中' : '任务启动失败');
+  const startBatchPdf = () => {
+    void notice.info('请对 Agent 说：为“补全缺失 PDF”列表中的报告批量生成 PDF');
   };
 
   const downloadAllPdfs = () => {
@@ -302,11 +296,6 @@ export function CV() {
 
       <div className="cv-top">
         <Card title="基础简历（cv.md）" extra="本地文件">
-          <div className="cv-actions">
-            <Button icon={<EditOutlined />} onClick={openCvEditor}>编辑 cv.md</Button>
-            <Button icon={<SettingOutlined />} onClick={() => void openProfileEditor()}>编辑 profile.yml</Button>
-            <Tooltip title={syncState === 'unavailable' ? '检查端点尚未就绪' : undefined}><span><Button type="primary" disabled={syncState === 'unavailable'} loading={syncState === 'checking'} icon={<PlayCircleOutlined />} onClick={() => void runSyncCheck()}>运行一致性检查</Button></span></Tooltip>
-          </div>
           <h3 className="cv-subtitle">简历模板</h3>
           <div className="cv-template">
             <div className="cv-template__head"><span className="cv-template__icon"><FileTextOutlined /></span><div><strong>现代简约 · ATS 优化版</strong><div><Tag>单页</Tag><Tag>技术岗通用</Tag><Tag>ATS 优化</Tag></div></div></div>
@@ -318,9 +307,9 @@ export function CV() {
           {cvContent ? <div className="cv-markdown"><ReactMarkdown remarkPlugins={[remarkGfm]}>{cvContent}</ReactMarkdown></div> : <EmptyState title="暂无简历内容" description="cv.md 当前为空。" />}
         </Card>
 
-        <Card title="简历一致性检查结果" extra={syncState === 'ready' ? `检查时间：${formatDateTime(syncResult?.checkedAt)}` : '未检测'}>
+        <Card title="简历一致性检查结果" extra={syncState === 'ready' ? `检查时间：${formatDateTime(syncResult?.checkedAt)}` : '未提供'}>
           {syncState === 'checking' ? <Skeleton active /> : syncState === 'unavailable' ? (
-            <EmptyState title="未检测" description="一致性检查端点尚未就绪。" action={<Tooltip title="检查端点尚未就绪"><span><Button disabled icon={<ReloadOutlined />}>手动运行</Button></span></Tooltip>} />
+            <EmptyState title="未提供" description="一致性检查请交给 AI Agent 执行，结果会在生成后显示。" />
           ) : (
             <>
               <div className="cv-check-grid">
@@ -339,8 +328,6 @@ export function CV() {
         <Card title="定制化 PDF 列表" extra={`${pdfRows.length} 份 · output/`}>
           <div className="cv-toolbar">
             <Input allowClear prefix={<SearchOutlined />} placeholder="搜索公司名称" value={query} onChange={(event) => setQuery(event.target.value)} />
-            <Button disabled={!filteredPdfRows.length} icon={<FileZipOutlined />} onClick={downloadAllPdfs}>批量下载</Button>
-            <Button type="primary" disabled={!missingPdfs.length} icon={<FilePdfOutlined />} onClick={() => void startBatchPdf()}>补全缺失 PDF</Button>
           </div>
           {filteredPdfRows.length ? (
             <Table
@@ -374,7 +361,6 @@ export function CV() {
             { title: '岗位方向', dataIndex: 'direction' },
             { title: '状态', render: () => <Tag color="processing">待生成</Tag> },
           ]} /> : <EmptyState icon={<CheckCircleFilled />} title="PDF 已齐全" description="没有发现有报告但缺少 PDF 的项目。" />}
-          <Button className="cv-generate" type="primary" size="large" disabled={!missingPdfs.length} icon={<PlayCircleOutlined />} onClick={() => void startBatchPdf()}>开始生成（{missingPdfs.length} 项）</Button>
         </Card>
       </div>
 

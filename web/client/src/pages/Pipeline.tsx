@@ -138,16 +138,6 @@ export function Pipeline() {
   const parseDegraded = false;
   const selectedRows = allRows.filter((row) => selectedKeys.includes(row.key));
 
-  const runScript = async (script: string) => {
-    const response = await fetch(`/api/scripts/${script}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: '{}',
-    });
-    if (response.ok) void notice.success('任务已启动，可在采集任务页查看历史');
-    else void notice.error(response.status === 409 ? '同名任务正在运行中' : '任务启动失败');
-  };
-
   const exportCsv = () => {
     const headers = ['公司', '职位', '薪资', '城市', '行业', '状态', 'URL'];
     const escape = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`;
@@ -213,12 +203,6 @@ export function Pipeline() {
       render: (_, row) => <a href={row.url} target="_blank" rel="noreferrer" title={row.url}>{row.domain}</a>,
     },
     { title: '状态', dataIndex: 'statusLabel', width: 105, render: (value) => <Tag color={value === '待处理' ? 'orange' : 'success'}>{value}</Tag> },
-    {
-      title: '操作',
-      fixed: 'right',
-      width: 62,
-      render: (_, row) => <Tooltip title={row.processed ? '取消勾选，移回待处理' : '勾选并标记为已处理'}><Button type="text" icon={<ReloadOutlined />} onClick={() => void writePipeline({ updates: [{ url: row.url, processed: !row.processed }] })} /></Tooltip>,
-    },
   ];
 
   const rowSelection: TableRowSelection<PipelineRow> = {
@@ -251,8 +235,6 @@ export function Pipeline() {
             { key: 'last', label: '最近处理', value: '—' },
           ]} />
         </Card>
-        <Button icon={<PlusOutlined />} type="primary" onClick={() => setAddUrlOpen(true)}>添加 URL</Button>
-        <Button icon={<ReloadOutlined />} onClick={() => window.location.reload()}>刷新数据</Button>
       </div>
 
       {loadState === 'error' ? <Alert className="pipeline-alert" type="error" showIcon message="队列数据加载失败" description="请确认 Web API 服务已启动后刷新页面。" /> : null}
@@ -281,7 +263,6 @@ export function Pipeline() {
                 rowKey="key"
                 columns={columns}
                 dataSource={filteredRows}
-                rowSelection={rowSelection}
                 size="small"
                 scroll={{ x: showScoreColumn ? 1570 : 1435 }}
                 pagination={{ pageSize: 20, showSizeChanger: true, pageSizeOptions: [20, 50, 100], showTotal: (count) => `共 ${numberFormat.format(count)} 条` }}
@@ -291,7 +272,7 @@ export function Pipeline() {
 
             <div className="pipeline-notes">
               <Card title="使用说明"><ul><li>待处理职位等待深度评估</li><li>已处理职位已完成评估流程</li><li>移除记录会写入扫描历史以避免重复</li></ul></Card>
-              <Card title="操作提示"><ul><li>支持平台、行业和关键词筛选</li><li>表格使用分页，避免一次渲染全部数据</li><li>批量处理和批量移除会直接写入数据文件</li></ul></Card>
+              <Card title="查看提示"><ul><li>支持平台、行业和关键词筛选</li><li>表格使用分页，避免一次渲染全部数据</li><li>新增、处理和移除职位请通过 AI Agent 执行</li></ul></Card>
               <Card title="数据口径"><ul><li>平台字标由 URL 域名推断</li><li>去重率来自 scan-history</li><li>初筛分列仅在存在非 5 分时展示</li></ul></Card>
             </div>
           </div>
@@ -304,20 +285,6 @@ export function Pipeline() {
                 <div><span>总计</span><strong>{numberFormat.format(total)}</strong></div>
                 <div><span>平均初筛分</span><strong>{averageScore.toFixed(2)} / 5</strong></div>
                 <div><span>去重过滤率</span><strong>{dedupRate.toFixed(1)}%</strong></div>
-              </div>
-            </Card>
-            <Card title="批量操作" extra={`已选择 ${selectedKeys.length} 条`}>
-              <div className="pipeline-batch">
-                <Button disabled={!selectedRows.length} icon={<ThunderboltOutlined />} onClick={() => void writePipeline({ updates: selectedRows.map((row) => ({ url: row.url, processed: true })) })}>批量处理</Button>
-                <Button disabled={!selectedRows.length} danger icon={<DeleteOutlined />} onClick={removeSelected}>批量移除</Button>
-              </div>
-            </Card>
-            <Card title="数据操作">
-              <div className="pipeline-operations">
-                <Button block icon={<MergeOutlined />} onClick={() => void runScript('merge-tracker')}>合并新数据</Button>
-                <Button block icon={<FilterOutlined />} onClick={() => void runScript('dedup-tracker')}>去重检查</Button>
-                <Button block icon={<ReloadOutlined />} onClick={() => void runScript('normalize-statuses')}>状态规范化</Button>
-                <Button block icon={<MoreOutlined />} onClick={exportCsv}>导出当前列表 CSV</Button>
               </div>
             </Card>
           </div>
@@ -368,36 +335,11 @@ export function Pipeline() {
                 <p className="pipeline-score-note">初筛基于职位名、薪资区间和行业标签进行三维评分（满分 5 分），≥3 分通过初筛。维度明细为近似推算，实际评分以采集时 AI 判定为准。</p>
               </Card>
 
-              <div className="pipeline-detail-actions">
-                <Button type="primary" icon={<ThunderboltOutlined />} onClick={() => { void writePipeline({ updates: [{ url: detailRow.url, processed: !detailRow.processed }] }); setDetailRow(null); }}>{detailRow.processed ? '移回待处理' : '标记为已处理'}</Button>
-                <Button danger icon={<DeleteOutlined />} onClick={() => { void writePipeline({ remove: [detailRow.url] }); setDetailRow(null); }}>移除</Button>
-              </div>
             </>
           );
         })()}
       </Drawer>
 
-      <Modal
-        title="手动添加 URL"
-        open={addUrlOpen}
-        okText="添加"
-        cancelText="取消"
-        confirmLoading={addingUrl}
-        onCancel={() => { setAddUrlOpen(false); addForm.resetFields(); }}
-        onOk={() => void addForm.validateFields().then(addUrl)}
-      >
-        <Form form={addForm} layout="vertical">
-          <Form.Item name="url" label="职位 URL" rules={[{ required: true, message: '请输入 URL' }, { type: 'url', message: '请输入有效的 URL' }]}>
-            <Input placeholder="https://www.zhipin.com/job_detail/..." />
-          </Form.Item>
-          <Form.Item name="company" label="公司（可选）">
-            <Input placeholder="如：字节跳动" />
-          </Form.Item>
-          <Form.Item name="role" label="职位（可选）">
-            <Input placeholder="如：AI 应用工程师" />
-          </Form.Item>
-        </Form>
-      </Modal>
     </main>
   );
 }

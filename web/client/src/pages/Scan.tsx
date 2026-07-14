@@ -149,7 +149,7 @@ function normalizeTaskHistory(item: TaskHistoryApiRow): TaskHistoryEntry {
   };
 }
 
-function RunningTaskCard({ task, onStop }: { task: RunningTask; onStop: (id: string) => void }) {
+function RunningTaskCard({ task }: { task: RunningTask }) {
   const meta = platformMeta(task.platform);
   const percent = task.progress.total ? Math.min(100, Math.round((task.progress.current / task.progress.total) * 100)) : 0;
   return (
@@ -157,7 +157,7 @@ function RunningTaskCard({ task, onStop }: { task: RunningTask; onStop: (id: str
       <div className="scan-runner__head"><PlatformChip variant={meta.variant} /><strong>{meta.label} - {task.query}</strong><Tag color="processing">运行中</Tag></div>
       <div className="scan-runner__meta"><span>{task.progress.step}：{task.progress.current} / {task.progress.total}（{percent}%）</span><span>新发现 {task.progress.found ?? 0}</span></div>
       <Progress percent={percent} showInfo={false} strokeColor="var(--co-primary)" />
-      <div className="scan-runner__meta"><span>预计剩余 {estimateRemaining(task)}</span><Button danger size="small" icon={<StopOutlined />} onClick={() => onStop(task.id)}>中止</Button></div>
+      <div className="scan-runner__meta"><span>预计剩余 {estimateRemaining(task)}</span></div>
     </div>
   );
 }
@@ -424,7 +424,7 @@ export function Scan() {
         <div className="scan-stack">
           <div className="scan-overview">
             <Card className="scan-card scan-running-card" title="运行中任务" extra={<span className="scan-count">{runningTasks.length}</span>}>
-              {runningTasks.length ? <div className="scan-runner-grid">{runningTasks.slice(0, 2).map((task) => <RunningTaskCard key={task.id} task={task} onStop={stopTask} />)}</div> : <EmptyState title="暂无运行中任务" description="从本页启动的任务会显示在这里。" />}
+              {runningTasks.length ? <div className="scan-runner-grid">{runningTasks.slice(0, 2).map((task) => <RunningTaskCard key={task.id} task={task} />)}</div> : <EmptyState title="暂无运行中任务" description="由 AI Agent 启动的任务会显示在这里。" />}
             </Card>
             <EnvironmentStatusCard className="scan-card" />
             <Card className="scan-card" title="去重统计（今日）">
@@ -449,99 +449,10 @@ export function Scan() {
         </div>
 
         <div className="scan-stack">
-          <Card className="scan-card" title="新建采集任务">
-            {cdp.loading ? null : !chromeReady ? (
-              <Alert
-                className="scan-cdp-alert"
-                type="error"
-                showIcon
-                icon={<ChromeOutlined />}
-                message="调试浏览器未运行"
-                description="所有采集任务依赖调试浏览器（Chrome 远程调试模式）。请先启动后再创建任务。"
-                action={<Button size="small" type="primary" icon={<ThunderboltOutlined />} loading={cdp.launching} onClick={async () => { const r = await cdp.launch(); if (r && !r.success) void notice.error(r.error ?? '启动调试浏览器失败'); }}>一键启动</Button>}
-              />
-            ) : currentLoginState === 'need_login' && currentLoginKey !== 'liepin' ? (
-              <Alert
-                className="scan-cdp-alert"
-                type="warning"
-                showIcon
-                icon={<LoginOutlined />}
-                message={`${platformMeta(platform).label} 未登录`}
-                description="检测到当前平台未登录，建议先完成登录再启动采集。采集脚本也会在运行时自动引导登录。"
-                action={<Button size="small" icon={<LoginOutlined />} onClick={() => void cdp.openLogin(currentLoginKey)}>打开登录页</Button>}
-              />
-            ) : chromeReady ? (
-              <Alert className="scan-cdp-alert" type="success" showIcon icon={<ChromeOutlined />} message={`调试浏览器就绪${cdp.browser ? ` (${cdp.browser})` : ''}`} />
-            ) : null}
-            <Form form={form} layout="vertical" initialValues={{ platform: '猎聘', query: '', rounds: 10 }} onFinish={(values) => void submitTasks(values)}>
-              <Form.Item name="platform" label="平台" rules={[{ required: true, message: '请选择平台' }]}>
-                <Select options={PLATFORM_OPTIONS.map(({ value, label }) => ({ value, label }))} />
-              </Form.Item>
-              <Form.Item name="query" label="关键词" rules={[{ required: true, whitespace: true, message: '请输入采集关键词' }, { max: 80, message: '关键词不能超过 80 个字符' }]}>
-                <Input placeholder="例如：AI应用工程师" />
-              </Form.Item>
-              <Form.Item
-                name="cities"
-                label="城市"
-                extra="可搜索城市名称，或输入当前平台的城市名称 / 城市代码后按回车；支持多选，每个城市将分别创建一个采集任务。对应脚本参数：--city"
-                rules={[
-                  { required: true, message: '请至少填写一个城市' },
-                  {
-                    validator: (_, values: string[] = []) => {
-                      const unresolved = values.filter((value) => !platformCities.some((city) => city.code === value || city.name === value));
-                      if (unresolved.length) return Promise.reject(new Error(`无法识别：${unresolved.join('、')}，请填写当前平台支持的城市名称或代码`));
-                      const codes = values.map((value) => platformCities.find((city) => city.code === value || city.name === value)?.code);
-                      if (new Set(codes).size !== codes.length) return Promise.reject(new Error('请勿重复填写同一个城市'));
-                      return Promise.resolve();
-                    },
-                  },
-                ]}
-              >
-                <Select
-                  mode="tags"
-                  showSearch
-                  optionFilterProp="label"
-                  placeholder={cityOptions.length ? '搜索或输入城市，按回车添加' : '正在加载城市代码'}
-                  options={cityOptions}
-                  tokenSeparators={[',', '，']}
-                  maxTagCount="responsive"
-                  virtual
-                  listHeight={300}
-                />
-              </Form.Item>
-              <Form.Item name="rounds" label="最大翻页数" extra={`对应脚本参数：${selectedPlatform.roundArg}`} rules={[{ required: true, message: '请输入轮数' }, { type: 'number', min: 1, max: 300, message: '请输入 1 到 300 之间的整数' }]}>
-                <InputNumber min={1} max={300} precision={0} />
-              </Form.Item>
-              <div className="scan-cli-preview"><strong>CLI 参数预览（每个城市一条任务）</strong><code>{cliPreview || '请先填写城市'}</code></div>
-              <Button type="primary" htmlType="submit" size="large" block loading={submitting} disabled={!chromeReady} icon={<PlayCircleOutlined />}>开始采集</Button>
-            </Form>
-          </Card>
-
-          <Card className="scan-card" title="AI 自动采集" extra={aiTask.status.state === 'running' ? <Tag color="processing">运行中</Tag> : null}>
-            <p className="scan-ai-desc">基于 portals.yml 配置，AI 自动执行全平台采集、去重和初筛。</p>
-            {aiTask.status.state === 'running' && aiTask.status.progress ? (
-              <div className="scan-ai-progress">
-                <span>{aiTask.status.progress.step}</span>
-                {aiTask.status.progress.total > 0 ? <Progress percent={Math.round((aiTask.status.progress.current / aiTask.status.progress.total) * 100)} size="small" /> : <Progress percent={0} size="small" status="active" />}
-                <Button danger size="small" icon={<StopOutlined />} onClick={() => void aiTask.cancel()}>中止</Button>
-              </div>
-            ) : (
-              <Button type="primary" block icon={<RocketOutlined />} disabled={!chromeReady} loading={aiTask.status.state === 'running'} onClick={() => void startAiScan()}>一键 AI 采集</Button>
-            )}
-          </Card>
-
-          <Card className="scan-card" title="快捷入口">
-            <div className="scan-quick-grid">
-              <Button icon={<FundProjectionScreenOutlined />} onClick={() => navigate('/pipeline')}>查看 Pipeline</Button>
-              <Button icon={<SettingOutlined />} onClick={() => void openPortalsEditor()}>采集配置</Button>
-            </div>
-          </Card>
-
-          <Card className="scan-card" title="说明">
+          <Card className="scan-card" title="采集说明">
             <div className="scan-notes">
-              <p>建议单次采集控制在 300 条以内，避免被平台限制</p>
-              <p>去重基于职位链接、公司、职位名等多维度匹配</p>
-              <p>任务失败可重试，系统会自动记录失败原因</p>
+              <p>采集、去重和初筛请通过 AI Agent 使用自然语言执行。</p>
+              <p>完成后，采集历史和待处理职位会自动显示在本页及待处理队列。</p>
             </div>
           </Card>
         </div>

@@ -22,12 +22,10 @@
 .prep-story-panel .ant-card-body, .prep-module-panel .ant-card-body, .prep-detail-panel .ant-card-body { padding: 16px; }
 .prep-story-panel .ant-card-extra, .prep-module-panel .ant-card-extra { color: var(--co-text-3); font-size: var(--co-fs-sub); }
 .prep-module-panel .ant-card-extra, .prep-detail-panel .ant-card-extra { display: flex; align-items: center; gap: 10px; }
-.prep-story-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-bottom: 12px; }
-.prep-story-tools .ant-input-affix-wrapper { height: 32px; }
-.prep-story-tools > span:last-child { display: block; height: 32px; }
-.prep-story-tools > span:last-child button { width: 100%; height: 32px; }
-.prep-theme-filter { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: var(--co-text-3); font-size: var(--co-fs-sub); }
-.prep-theme-filter .ant-select { min-width: 145px; }
+.prep-story-tools { width: 100%; margin-bottom: 12px; }
+.prep-story-tools .ant-input-affix-wrapper { width: 100%; height: 32px; }
+.prep-theme-filter { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; color: var(--co-text-3); font-size: var(--co-fs-sub); }
+.prep-theme-filter .ant-select { width: 145px; }
 .prep-theme-tabs { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
 .prep-theme-tabs button, .prep-detail-tabs button {
   border: 1px solid var(--co-border-control);

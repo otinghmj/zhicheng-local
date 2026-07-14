@@ -134,16 +134,6 @@ export function Tracker() {
   const directions = [...new Set(applications.flatMap((item) => item.direction ? [item.direction] : []))].sort();
   const platforms = [...new Set(applications.map(inferPlatform))].sort();
 
-  const runScript = async (script: string) => {
-    const response = await fetch(`/api/scripts/${script}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: '{}',
-    });
-    if (response.ok) void notice.success('任务已启动');
-    else void notice.error(response.status === 409 ? '同名任务正在运行中' : '任务启动失败');
-  };
-
   // 只读看板：投递跟踪的写操作交给 Agent（tracker 模式）。这里给出可直接对 Agent 说的一句话。
   const askAgentTracker = (action: string) => {
     void notice.info(`该操作请交给 Agent 执行（tracker 模式）：${action}`);
@@ -220,12 +210,6 @@ export function Tracker() {
           <p>跟踪所有职位的投递进展，及时更新状态</p>
         </div>
         <div className="tracker-actions">
-          <Button icon={<MergeOutlined />} onClick={() => void runScript('merge-tracker')}>合并新数据</Button>
-          <Button icon={<ReloadOutlined />} onClick={() => void runScript('dedup-tracker')}>去重检查</Button>
-          <Button icon={<ReloadOutlined />} onClick={() => void runScript('normalize-statuses')}>状态规范化</Button>
-          <Select placeholder="批量状态" value={batchStatus} onChange={setBatchStatus} options={stateLabels.map((label) => ({ label, value: label }))} />
-          <Button disabled={!selectedNums.length || !batchStatus} loading={batchSaving} onClick={() => void updateSelectedStatus()}>批量更新（{selectedNums.length}）</Button>
-          <Button type="primary" icon={<DownloadOutlined />} onClick={() => downloadCsv(filtered)}>导出 CSV</Button>
         </div>
       </div>
 
@@ -275,7 +259,6 @@ export function Tracker() {
                 </button>
                 {collapsed ? null : (
                   <>
-                    <button className="tracker-kanban__add" type="button" onClick={() => { setAddCardStatus(label); setAddCardOpen(true); }}>＋ 添加卡片</button>
                     <div className="tracker-kanban__cards">
                       {items.slice(0, 4).map((item) => (
                         <article
@@ -303,7 +286,7 @@ export function Tracker() {
           })}
         </section>
       ) : (
-        <Card className="tracker-table-card" title={`所有记录（共 ${filtered.length} 条）`} extra={<Button icon={<DownloadOutlined />} onClick={() => downloadCsv(filtered)}>导出 CSV</Button>}>
+        <Card className="tracker-table-card" title={`所有记录（共 ${filtered.length} 条）`}>
           <Table
             rowKey="num"
             columns={tableColumns}
@@ -340,43 +323,11 @@ export function Tracker() {
               ].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}
               <div><span>状态</span><Select value={selectedStatus} onChange={setSelectedStatus} options={stateLabels.map((label) => ({ label, value: label }))} /></div>
             </div>
-            <h3>备注</h3>
-            <Input.TextArea value={selectedNotes} onChange={(event) => setSelectedNotes(event.target.value)} rows={4} />
-            <Button type="primary" block loading={savingDetail} onClick={() => void saveDetail()}>保存状态与备注</Button>
             <Button type="primary" block className="tracker-interview-button" onClick={() => navigate(`/interview-prep?application=${selected.num}`)}>面试准备</Button>
-            <Button danger block icon={<DeleteOutlined />} loading={deletingDetail} onClick={deleteDetail}>删除该条记录</Button>
           </>
         ) : null}
       </Drawer>
 
-      <Modal
-        title="添加投递记录"
-        open={addCardOpen}
-        footer={null}
-        onCancel={() => setAddCardOpen(false)}
-      >
-        <Form<{ company: string; role: string; status: string; notes: string }>
-          layout="vertical"
-          initialValues={{ status: addCardStatus, notes: '' }}
-          onFinish={(values) => void createApplication(values)}
-        >
-          <Form.Item name="company" label="公司" rules={[{ required: true, message: '请输入公司名称' }]}>
-            <Input placeholder="如：字节跳动" />
-          </Form.Item>
-          <Form.Item name="role" label="职位" rules={[{ required: true, message: '请输入职位名称' }]}>
-            <Input placeholder="如：AI 应用工程师" />
-          </Form.Item>
-          <Form.Item name="status" label="状态">
-            <Select options={stateLabels.map((label) => ({ label, value: label }))} />
-          </Form.Item>
-          <Form.Item name="notes" label="备注">
-            <Input.TextArea rows={3} />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" block>添加</Button>
-          </Form.Item>
-        </Form>
-      </Modal>
     </main>
   );
 }

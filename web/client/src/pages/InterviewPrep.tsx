@@ -284,7 +284,6 @@ export function InterviewPrep() {
         >
           <div className="prep-story-tools">
             <Input allowClear prefix={<SearchOutlined />} placeholder="搜索标题 / 内容关键词" value={query} onChange={(event) => setQuery(event.target.value)} />
-            <Button icon={<PlusOutlined />} onClick={() => setStoryModalOpen(true)}>新增故事</Button>
           </div>
           <div className="prep-theme-filter">
             <span>能力标签</span>
@@ -303,7 +302,7 @@ export function InterviewPrep() {
                 <div>{story.themes.map((item, index) => <Tag color={tagColors[index % tagColors.length]} key={item}>{item}</Tag>)}</div>
                 <h3>{story.title}</h3>
                 <p className="prep-story__suitable">适用于：{story.suitableFor.join(' · ')}</p>
-                <p className="prep-story__summary"><span>{truncate(story.situation)}</span><Button type="text" size="small" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); openEditStory(story); }} /></p>
+                <p className="prep-story__summary"><span>{truncate(story.situation)}</span></p>
                 <span className="prep-story__toggle">{selectedStoryId === story.id ? '收起完整故事' : '查看完整 STAR+R'}</span>
                 {selectedStoryId === story.id ? (
                   <div className="prep-story__detail">
@@ -331,7 +330,7 @@ export function InterviewPrep() {
           <Card
             className="prep-module-panel"
             title="深度准备状态"
-            extra={<><span>5 个模块</span><Button size="small" icon={<ReloadOutlined />} disabled={!selectedApplication || aiTask.status.state === 'running'} loading={aiTask.status.state === 'running'} onClick={() => { if (selectedApplication) void aiTask.start('interview-prep', String(selectedApplication.num)); }}>{aiTask.status.state === 'running' ? '生成中…' : '重新生成全部'}</Button></>}
+            extra={<span>5 个模块</span>}
           >
             <div className="prep-module-grid">
               {MODULES.map((module, index) => {
@@ -351,7 +350,7 @@ export function InterviewPrep() {
           <Card
             className="prep-detail-panel"
             title={`${String(MODULES.findIndex((module) => module.key === activeModule) + 1).padStart(2, '0')} ${activeModuleMeta.title}`}
-            extra={<><TriStateBadge state={aiTask.status.state === 'running' ? 'generating' : moduleStates[activeModule]} /><Button size="small" icon={<ReloadOutlined />} disabled={!selectedApplication || aiTask.status.state === 'running'} loading={aiTask.status.state === 'running'} onClick={() => { if (!selectedApplication) return; const modeMap: Record<ModuleKey, string> = { immersion: 'deep-prep-immersion', glossary: 'deep-prep-glossary', simulate: 'deep-prep-simulate', roleplay: 'deep-prep-roleplay', portfolio: 'deep-prep-portfolio' }; void aiTask.start(modeMap[activeModule], String(selectedApplication.num)); }}>{aiTask.status.state === 'running' ? '生成中…' : moduleStates[activeModule] === 'completed' ? '重新生成' : '生成'}</Button></>}
+            extra={<TriStateBadge state={aiTask.status.state === 'running' ? 'generating' : moduleStates[activeModule]} />}
           >
             {detailState === 'loading' ? <Skeleton active /> : detailState === 'error' ? (
               <Alert type="error" showIcon message="深度准备文件读取失败" />
@@ -362,7 +361,7 @@ export function InterviewPrep() {
                 <div className="prep-detail-time">最后更新：{selectedPrepFile?.mtime ? dayjs(selectedPrepFile.mtime).format('YYYY-MM-DD HH:mm') : '未知'}</div>
               </>
             ) : (
-              <EmptyState title={`${activeModuleMeta.title}尚未开始`} description={selectedPrepFile ? '当前深度准备文件中还没有此模块。' : '当前岗位还没有匹配的深度准备文件。'} action={<Button type="primary" disabled={!selectedApplication || aiTask.status.state === 'running'} loading={aiTask.status.state === 'running'} onClick={() => { if (!selectedApplication) return; const modeMap: Record<ModuleKey, string> = { immersion: 'deep-prep-immersion', glossary: 'deep-prep-glossary', simulate: 'deep-prep-simulate', roleplay: 'deep-prep-roleplay', portfolio: 'deep-prep-portfolio' }; void aiTask.start(modeMap[activeModule], String(selectedApplication.num)); }}>{aiTask.status.state === 'running' ? '生成中…' : '生成此模块'}</Button>} />
+              <EmptyState title={`${activeModuleMeta.title}尚未开始`} description={selectedPrepFile ? '当前深度准备文件中还没有此模块。' : '当前岗位还没有匹配的深度准备文件。请通过 AI Agent 生成后再查看。'} />
             )}
           </Card>
         </div>

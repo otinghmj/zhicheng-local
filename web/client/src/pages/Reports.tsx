@@ -301,33 +301,6 @@ export function Reports() {
       {noticeContext}
       <div className="reports-head">
         <div><h1>评估报告</h1><p>基于 A–E 五维分析，查看岗位匹配度与下一步建议</p></div>
-        <div className="reports-actions">
-          <Button
-            icon={<ReloadOutlined />}
-            disabled={!detail?.url || aiTask.status.state === 'running'}
-            loading={aiTask.status.state === 'running'}
-            onClick={() => {
-              if (!detail?.url) return;
-              void aiTask.start('oferta', detail.url);
-            }}
-          >
-            {aiTask.status.state === 'running' ? '评估中…' : '重新评估'}
-          </Button>
-          <Button
-            icon={<FilePdfOutlined />}
-            disabled={!detail?.url || aiTask.status.state === 'running'}
-            onClick={generatePdf}
-          >
-            生成 PDF
-          </Button>
-          <Button
-            icon={<SendOutlined />}
-            disabled={!detail || !!selectedApplication}
-            onClick={() => void addToTracker()}
-          >
-            {selectedApplication ? '已入库' : '入库 Tracker'}
-          </Button>
-        </div>
       </div>
 
       {loadState === 'error' ? <Alert type="error" showIcon message="评估报告加载失败" description="请确认 Web API 服务已启动后刷新页面。" /> : null}
@@ -341,46 +314,10 @@ export function Reports() {
           <Segmented className="reports-direction-tabs" options={directionTabs} value={direction} onChange={(value) => setDirection(String(value))} />
 
 
-          <Modal
-            title="多项对比分析"
-            open={compareModalOpen}
-            onCancel={() => setCompareModalOpen(false)}
-            footer={null}
-            width={800}
-            destroyOnHidden
-          >
-            <div className="reports-markdown" style={{ maxHeight: 520, overflow: 'auto' }}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{compareContent}</ReactMarkdown>
-            </div>
-          </Modal>
-
           <div className="reports-layout">
             <Card className="reports-list-card">
               <div className="reports-toolbar">
                 <Input allowClear prefix={<SearchOutlined />} placeholder="搜索公司 / 职位" value={query} onChange={(event) => setQuery(event.target.value)} />
-                {compareMode ? (
-                  <>
-                    <Button
-                      type="primary"
-                      icon={<SwapOutlined />}
-                      disabled={compareKeys.length < 2 || aiTask.status.state === 'running'}
-                      loading={aiTask.status.state === 'running' && aiTask.status.jobId !== null}
-                      onClick={async () => {
-                        const nums = compareKeys.map((key) => {
-                          const row = rows.find((r) => (r.reportPath ?? String(r.num)) === key);
-                          return String(row?.num ?? '');
-                        }).filter(Boolean);
-                        const result = await aiTask.start('ofertas', nums.join(','));
-                        if ('error' in result) void notice.error(result.error);
-                      }}
-                    >
-                      对比 {compareKeys.length} 份
-                    </Button>
-                    <Button onClick={() => { setCompareMode(false); setCompareKeys([]); }}>取消</Button>
-                  </>
-                ) : (
-                  <Button icon={<SwapOutlined />} onClick={() => setCompareMode(true)}>多选对比</Button>
-                )}
               </div>
               <Table
                 columns={columns}
@@ -438,27 +375,6 @@ export function Reports() {
                       {detail.reportPath ? <div><span>评估报告（MD）</span><b>{detail.reportPath}</b><FileMarkdownOutlined /></div> : <div><span>评估报告（MD）</span><b>未找到</b><FileMarkdownOutlined /></div>}
                       {selectedPdf ? <div><span>定制 PDF</span><b>{selectedPdf.filename}</b><FilePdfOutlined /></div> : <div><span>定制 PDF</span><b>未匹配到 cv-{detail.company}-{detail.date}.pdf</b><FilePdfOutlined /></div>}
                       <div><span>深度准备</span><b>{slug}-deep.md</b><FileMarkdownOutlined /></div>
-                    </div>
-                    <div className="reports-panel">
-                      <h3>报告操作与对比</h3>
-                      {aiTask.status.state === 'running' ? (
-                        <div className="reports-running-task">
-                          <p>AI 任务运行中：{aiTask.status.progress?.step ?? '处理中'}</p>
-                          <Button danger size="small" onClick={() => void aiTask.cancel()}>取消</Button>
-                        </div>
-                      ) : (
-                        <p>对当前报告执行重评估，或选择多份报告进行对比分析。</p>
-                      )}
-                      <div className="reports-disabled-actions">
-                        <Button
-                          disabled={!detail?.url || aiTask.status.state === 'running'}
-                          loading={aiTask.status.state === 'running'}
-                          onClick={() => { if (detail?.url) void aiTask.start('oferta', detail.url); }}
-                        >重新评估</Button>
-                        <Button disabled={!detail?.url || aiTask.status.state === 'running'} onClick={generatePdf}>生成 PDF</Button>
-                        <Button disabled={!detail || !!selectedApplication} onClick={() => void addToTracker()}>{selectedApplication ? '已入库' : '入库 Tracker'}</Button>
-                        <Button onClick={() => { setCompareMode(true); }}>多选对比</Button>
-                      </div>
                     </div>
                   </section>
                 </>

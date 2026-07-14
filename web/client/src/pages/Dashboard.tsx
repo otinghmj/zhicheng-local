@@ -125,9 +125,9 @@ export function Dashboard() {
   ];
 
   const environmentGroups = useMemo(() => [
-    { name: '基础环境', icon: '基', patterns: ['node.js', 'dependencies', 'playwright'] },
+    { name: '基础环境', icon: '基', patterns: ['node.js', '依赖目录'] },
     { name: '求职配置', icon: '配', patterns: ['cv.md', 'profile.yml', 'portals.yml'] },
-    { name: '数据目录', icon: '数', patterns: ['data/', 'output/', 'reports/'] },
+    { name: '数据目录', icon: '数', patterns: ['数据目录'] },
     { name: '采集环境', icon: '采', patterns: ['chrome', 'opencli'] },
   ], []);
 
@@ -238,10 +238,10 @@ export function Dashboard() {
 
           <Card className="dashboard-card" title="快捷入口">
             <div className="dashboard-quick-grid">
-              <Button className="dashboard-quick" icon={<PlusCircleOutlined />} onClick={() => navigate('/collection')}>新建采集任务</Button>
-              <Button className="dashboard-quick" icon={<FundProjectionScreenOutlined />} onClick={() => navigate('/pipeline')}>手动添加待处理</Button>
-              <Button className="dashboard-quick" icon={<AuditOutlined />} onClick={() => navigate('/reports')}>生成评估报告</Button>
-              <Button className="dashboard-quick" icon={<FilePdfOutlined />} onClick={() => navigate('/resumes')}>更新简历 PDF</Button>
+              <Button className="dashboard-quick" icon={<PlusCircleOutlined />} onClick={() => navigate('/collection')}>查看采集任务</Button>
+              <Button className="dashboard-quick" icon={<FundProjectionScreenOutlined />} onClick={() => navigate('/pipeline')}>查看待处理队列</Button>
+              <Button className="dashboard-quick" icon={<AuditOutlined />} onClick={() => navigate('/reports')}>查看评估报告</Button>
+              <Button className="dashboard-quick" icon={<FilePdfOutlined />} onClick={() => navigate('/resumes')}>查看简历 PDF</Button>
             </div>
           </Card>
 

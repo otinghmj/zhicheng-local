@@ -30,7 +30,7 @@ export function AiSettingsModal({ open, onClose, config }: Props) {
       onCancel={onClose}
       footer={<Button onClick={onClose}>关闭</Button>}
       width={520}
-      destroyOnClose
+      destroyOnHidden
     >
       {noticeCtx}
       <div style={{ marginTop: 16 }}>

@@ -1,4 +1,5 @@
 {
+  "doctor": "scripts/doctor.mjs",
   "generate-pdf": "generate-pdf.mjs",
   "51job-opencli": "scrapers/51job/51job-opencli.mjs",
   "liepin-dom": "scrapers/liepin/liepin-dom.mjs"

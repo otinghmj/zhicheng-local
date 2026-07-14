@@ -54,18 +54,6 @@ export function Header() {
         </nav>
 
         <div className="app-header__right">
-          <button
-            className="app-notification"
-            type="button"
-            aria-label="AI 设置"
-            title={`AI: Agent 模式${(aiConfig?.agentConnections ?? 0) > 0 ? ` (${aiConfig!.agentConnections} 连接)` : ''}`}
-            onClick={() => setSettingsOpen(true)}
-          >
-            <SettingOutlined />
-          </button>
-
-          <AiSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} config={aiConfig} />
-
           <button className="app-user" type="button" aria-label="用户菜单">
             <span className="app-user__avatar">
               U
