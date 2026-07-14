@@ -72,59 +72,42 @@ MCP 是一种让本机后端和 AI Agent 通信的协议。你不用先理解它
 </p>
 
 
-## 安装
+## 快速开始
 
-先准备好：
+一行指令，在任意 AI Agent 里跑起职程。
 
-- Node.js 18 或更高版本
-- Git
-- Google Chrome
+**通过 AI Agent（推荐，从零到跑起来）** —— 把下面这句发给你的 Agent（Claude Code / Cursor / Codex 等）：
 
-然后运行：
+> 帮我安装并运行职程：https://raw.githubusercontent.com/otinghmj/zhicheng-local/main/AGENTS.md
 
-```bash
-git clone https://github.com/otinghmj/zhicheng-local.git zhicheng
-cd zhicheng
-npm start
-```
+Agent 会照着 [`AGENTS.md`](AGENTS.md) 自己把环境装好（Node 等）、克隆、启动、采集、评估——你不用管命令。
 
-**一条 `npm start` 就够了**：首次运行会自动装依赖、创建个人配置文件、写好 MCP 配置，然后启动网页——不用再单独跑 `npm run setup` 和 `npm run mcp:setup`。（想单独初始化仍可 `npm run setup`。）
-
-打开：
-
-```text
-http://localhost:5173
-```
-
-网页是一个**只读看板**：打开就能看数据，不需要选择目录、也不需要授权。用**什么浏览器都行**——Chrome、Edge、Firefox、Safari，甚至 VS Code 内嵌的 Simple Browser 都可以，因为页面只通过本地后端读取数据、不直接读写文件。
-
-采集、评估、编辑等所有写操作都交给你的 AI Agent 完成（见下方「连接 AI Agent」和「用一句话驱动」）。
-
-## 常用命令
+**手动（已装 Node.js 18+ 和 Git）** —— 粘贴这一行：
 
 ```bash
-npm start          # 一条命令搞定：首次自动装依赖 + 建工作目录 + 写 MCP 配置，然后启动网页
-npm run init       # 只建工作目录（数据目录 + 个人文件模板，不装依赖、不启动）
-npm run setup      # 只做初始化（装依赖 + 建工作目录），不启动
-npm run doctor     # 检查本机环境
-npm run mcp:setup  # 写入 Claude Code / Cursor 的 MCP 配置
-npm run mcp:print  # 打印任意 Agent 可用的 MCP 配置片段
+git clone https://github.com/otinghmj/zhicheng-local.git zhicheng && cd zhicheng && npm start
 ```
 
-如果你把命令装到了全局，也可以这样用：
+`npm start` 首次会自动装依赖、建工作目录、写好 MCP 配置并启动网页，不用再单独跑别的。
 
-```bash
-zhicheng setup
-zhicheng doctor
-zhicheng start
-zhicheng mcp:setup
-```
+跑起来后打开只读看板 `http://localhost:5173`（Chrome / Edge / Firefox / Safari，甚至 VS Code 内嵌浏览器都行），或接着对 Agent 说“采集猎聘北京的 AI 应用工程师岗位、评估前 10 个”。
 
-没装全局命令也没关系，在项目目录里可以直接运行：
+> 采集要复用你 Chrome 里的登录态，先在 Chrome 登录目标招聘网站（猎聘 / 51job）——这是唯一需要你亲自做的一步。
 
-```bash
-npx . start
-```
+## 命令速查
+
+平时用不到，交给 Agent 即可；想手动跑时参考：
+
+| 命令 | 作用 |
+| --- | --- |
+| `npm start` | 一条命令冷启动：首次自动装依赖 + 建工作目录 + 写 MCP 配置 + 启动网页 |
+| `npm run init` | 只建工作目录（数据目录 + 个人文件模板，不装依赖、不启动） |
+| `npm run setup` | 只做初始化（装依赖 + 建工作目录），不启动 |
+| `npm run doctor` | 检查本机环境（Node、Chrome、端口、依赖） |
+| `npm run mcp:setup` | 给本机 Claude Code / Cursor 写入 MCP 配置 |
+| `npm run mcp:print` | 打印任意 Agent 可用的 MCP 配置片段 |
+
+> 全局安装后可用 `zhicheng <命令>` 代替 `npm run <命令>`；没装全局就用 `npx . start`。
 
 ## 需要你自己填写的文件
 

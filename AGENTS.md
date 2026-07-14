@@ -16,6 +16,54 @@
 - **Web Server（本地，`http://localhost:3200`）= 只读展示 API**：从工作目录读数据（`/api/data/*`），配合 SSE 实时推给看板。
 - **浏览器前端 = 纯看板**：只发 HTTP GET，不做任何写操作。
 
+## 从零冷启动（收到"安装并运行职程"类请求时，先完整做这段）
+
+你在用户机器上有终端访问权。按顺序执行，缺什么装什么，每步失败先解决再继续。
+
+### 0. 定位项目
+
+- 当前目录若已是本仓库（能看到本文件 `AGENTS.md`、`package.json`），进入第 1 步。
+- 否则克隆（缺 `git` 先装 git）：
+
+  ```bash
+  git clone https://github.com/otinghmj/zhicheng-local.git zhicheng && cd zhicheng
+  ```
+
+### 1. 装 Node.js ≥ 18（运行时）
+
+先 `node -v` 检查。缺失或低于 18 就装，按操作系统选：
+
+- macOS：`brew install node`（无 Homebrew 先装，或用 `nvm`）
+- Debian/Ubuntu：nodesource 脚本，或 `nvm install --lts`
+- Windows：`winget install OpenJS.NodeJS.LTS`
+
+系统级安装可能需要用户授权/密码——遇到就提示用户确认后再继续。
+
+### 2. 一键初始化并启动
+
+在项目根执行（**放后台运行**，它会常驻）：
+
+```bash
+npm start
+```
+
+首次会自动装前后端依赖、建工作目录（`data/ reports/ output/ ...` + `cv.md` 等个人文件模板）、写好 MCP 配置，并起后端 `3200` + 前端 `5173`。用以下命令确认后端就绪：
+
+```bash
+curl -s http://localhost:3200/api/health
+```
+
+### 3. 采集前置（仅采集类任务需要）
+
+- 确认系统安装了 Chrome（缺了可装；采集用的调试实例由 `scrapers/shared/ensure-chrome.mjs` 处理）。
+- **提醒用户**：采集复用其 Chrome 登录态，需先在 Chrome 登录目标招聘网站（猎聘 / 51job）——这一步你替不了。
+
+### 4. 告知用户
+
+打开只读看板 `http://localhost:5173`（任意浏览器，含 VS Code 内嵌）。
+
+自举完成后，进入下面的「端到端 Playbook」执行用户的具体任务。
+
 ## 端到端 Playbook（主线）
 
 ### 0. 确保工作目录就绪（每次开工先做）
