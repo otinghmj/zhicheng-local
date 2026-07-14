@@ -8,21 +8,49 @@ import { PIPELINE_PATH } from "../shared/paths.mjs";
 
 const DEFAULT_PIPELINE = PIPELINE_PATH;
 
-function formatPendingLine(job) {
-  const location = [job.cityName, job.areaDistrict].filter(Boolean).join("·");
-  const skills   = Array.isArray(job.skills)      ? job.skills.join("、")      : (job.skills      || "");
-  const welfare  = Array.isArray(job.welfareList) ? job.welfareList.join("、") : (job.welfareList || "");
-  const labels   = Array.isArray(job.jobLabels)   ? job.jobLabels.join("、")   : (job.jobLabels   || "");
-  return `- [ ] ${job.url} | ${job.brandName} | ${job.jobName} | ${job.salaryDesc} | ${location} |${job.jobExperience}| ${job.jobDegree}|${job.brandIndustry}|${job.brandScaleName}|${job.brandStageName}|${skills}|${welfare}|${labels}`;
+function pipelineValue(value) {
+  return String(value ?? "").replaceAll("|", "｜").replace(/\s+/g, " ").trim();
 }
 
-function extractExistingUrls(content) {
-  const urls = new Set();
+function formatPendingLine(job) {
+  const location = [job.cityName, job.areaDistrict].filter(Boolean).join("·");
+  const experience = job.experience ?? job.jobExperience;
+  const education = job.degree ?? job.jobDegree;
+  const industry = job.industry ?? job.brandIndustry;
+  const companySize = job.companySize ?? job.brandScaleName;
+
+  // Keep this line aligned with web/server/src/parsers/pipeline.mjs: ten fields, ending in a five-point score.
+  return `- [ ] ${[
+    job.url,
+    job.brandName,
+    job.jobName,
+    job.salaryDesc,
+    location,
+    experience,
+    education,
+    industry,
+    companySize,
+    "初筛分: 0/5",
+  ].map(pipelineValue).join(" | ")}`;
+}
+
+function pipelineUrl(line) {
+  const match = line.match(/https?:\/\/[^\s|]*liepin\.com[^\s|]*/);
+  return match?.[0]?.split("?")[0];
+}
+
+function isCurrentPipelineLine(line) {
+  const fields = line.replace(/^\s*-\s*\[[ xX]\]\s*/, "").split("|").map((field) => field.trim());
+  return fields.length === 10 && /^初筛分:\s*\d+(?:\.\d+)?\s*\/\s*5$/.test(fields[9] ?? "");
+}
+
+function extractExistingEntries(content) {
+  const entries = new Map();
   for (const line of content.split("\n")) {
-    const m = line.match(/https?:\/\/[^\s|]*liepin\.com[^\s|]*/);
-    if (m) urls.add(m[0].split("?")[0]);
+    const url = pipelineUrl(line);
+    if (url) entries.set(url, { valid: isCurrentPipelineLine(line) });
   }
-  return urls;
+  return entries;
 }
 
 function insertIntoPending(content, newLines) {
@@ -52,14 +80,17 @@ export async function writeToPipeline({ reportPath, pipelinePath = DEFAULT_PIPEL
     pipelineContent = "## Pending\n\n## Processed\n";
   }
 
-  const existingUrls = extractExistingUrls(pipelineContent);
+  const existingEntries = extractExistingEntries(pipelineContent);
 
   const toAdd = [];
+  const repairUrls = new Set();
   let skipped = 0;
   for (const job of jobs) {
     if (!job.url) { skipped++; continue; }
     const cleanUrl = job.url.split("?")[0];
-    if (existingUrls.has(cleanUrl)) { skipped++; continue; }
+    const existing = existingEntries.get(cleanUrl);
+    if (existing?.valid) { skipped++; continue; }
+    if (existing) repairUrls.add(cleanUrl);
     toAdd.push(formatPendingLine(job));
   }
 
@@ -70,11 +101,17 @@ export async function writeToPipeline({ reportPath, pipelinePath = DEFAULT_PIPEL
   }
 
   if (toAdd.length > 0) {
+    if (repairUrls.size > 0) {
+      pipelineContent = pipelineContent
+        .split("\n")
+        .filter((line) => !repairUrls.has(pipelineUrl(line)) || isCurrentPipelineLine(line))
+        .join("\n");
+    }
     const updated = insertIntoPending(pipelineContent, toAdd);
     await fs.writeFile(pipelinePath, updated, "utf8");
   }
 
-  return { added: toAdd.length, skipped, reportPath };
+  return { added: toAdd.length, skipped, repaired: repairUrls.size, reportPath };
 }
 
 // CLI 直接运行
