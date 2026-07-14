@@ -21,9 +21,7 @@
 - 需要时生成定制版 PDF 简历。
 - 维护投递跟踪表。
 - 整理面试准备材料和故事库。
-- 通过 MCP 连接 Claude Code、Cursor、Codex 或**任意支持 MCP 的 Agent**。
 
-MCP 是一种让本机后端和 AI Agent 通信的协议。你不用先理解它，先知道一件事就够了：连接后，你**直接对 Agent 说一句话**（比如“采集猎聘北京的 AI 应用工程师岗位，评估前 10 个”），它就会自己采集、评估、生成报告并写进项目目录，网页只负责展示结果。项目根有一份面向任意 Agent 的操作契约 [`AGENTS.md`](AGENTS.md)——你的 Agent 读完就能像用一个 skill 一样驱动职程，不限于某一家工具。
 
 ## 适合谁
 
@@ -76,11 +74,11 @@ MCP 是一种让本机后端和 AI Agent 通信的协议。你不用先理解它
 
 一行指令，在任意 AI Agent 里跑起职程。
 
-**通过 AI Agent（推荐，从零到跑起来）** —— 把下面这句发给你的 Agent（Claude Code / Cursor / Codex 等）：
+把下面这句发给你的 Agent（Claude Code / Cursor / Codex 等）：
 
 > 帮我安装并运行职程：https://raw.githubusercontent.com/otinghmj/zhicheng-local/main/AGENTS.md
 
-Agent 会照着 [`AGENTS.md`](AGENTS.md) 自己把环境装好（Node 等）、克隆、启动、采集、评估——你不用管命令。
+
 
 **手动（已装 Node.js 18+ 和 Git）** —— 粘贴这一行：
 
@@ -90,13 +88,11 @@ git clone https://github.com/otinghmj/zhicheng-local.git zhicheng && cd zhicheng
 
 `npm start` 首次会自动装依赖、建工作目录、写好 MCP 配置并启动网页，不用再单独跑别的。
 
-跑起来后打开只读看板 `http://localhost:5173`（Chrome / Edge / Firefox / Safari，甚至 VS Code 内嵌浏览器都行），或接着对 Agent 说“采集猎聘北京的 AI 应用工程师岗位、评估前 10 个”。
+跑起来后打开只读看板 `http://localhost:5173`（Chrome / Edge / Firefox / Safari，甚至 VS Code 内嵌浏览器都行）
 
-> 采集要复用你 Chrome 里的登录态，先在 Chrome 登录目标招聘网站（猎聘 / 51job）——这是唯一需要你亲自做的一步。
+> 采集要复用你 Chrome 里的登录态，先在 Chrome 登录目标招聘网站（猎聘 / 51job）
 
 ## 命令速查
-
-平时用不到，交给 Agent 即可；想手动跑时参考：
 
 | 命令 | 作用 |
 | --- | --- |
@@ -109,95 +105,6 @@ git clone https://github.com/otinghmj/zhicheng-local.git zhicheng && cd zhicheng
 
 > 全局安装后可用 `zhicheng <命令>` 代替 `npm run <命令>`；没装全局就用 `npx . start`。
 
-## 需要你自己填写的文件
-
-`npm run setup` 会创建这些文件：
-
-```text
-cv.md
-config/profile.yml
-modes/_profile.md
-portals.yml
-article-digest.md
-```
-
-大概意思如下：
-
-- `cv.md`：你的简历正文。
-- `config/profile.yml`：目标岗位、城市、薪资、偏好。
-- `modes/_profile.md`：你的优势、经历叙事、谈薪策略。
-- `portals.yml`：你想关注的招聘来源。
-- `article-digest.md`：项目、文章、作品亮点。
-
-这些文件一开始只是模板。要让评估结果靠谱，你需要认真填。
-
-## 数据放在哪里
-
-常见目录：
-
-```text
-data/              投递记录、待处理队列、采集历史
-reports/           岗位评估报告
-output/            生成的 PDF
-interview-prep/    面试准备材料
-jds/               保存下来的 JD
-```
-
-这些真实数据默认不会提交到 Git。`.gitignore` 已经排除了：
-
-```text
-cv.md
-config/profile.yml
-modes/_profile.md
-article-digest.md
-portals.yml
-data/*
-reports/*
-output/*
-interview-prep/*
-jds/*
-```
-
-简单说：代码可以上传，个人数据不要上传。
-
-## 连接 AI Agent
-
-`npm start` 启动时会自动写好本机已安装 Agent（Claude Code / Cursor）的 MCP 配置，通常你只需**重启一次 Agent** 就连上了。
-
-- **Claude Code**：项目根已内置 `.mcp.json`，在本项目目录打开即自动识别，无需额外配置。
-- **Cursor**：`npm start` / `npm run mcp:setup` 会写入 `~/.cursor/mcp.json`。
-- **Codex 或其它支持 MCP 的 Agent**：运行 `npm run mcp:print` 拿到可粘贴的配置片段，按各自方式添加 `http://localhost:3200/mcp`。
-
-连接后，Agent 请阅读项目根 [`AGENTS.md`](AGENTS.md)——那是一份面向任意 Agent 的操作契约，读完就能像用 skill 一样驱动职程。你也可以在网页右上角打开 AI 设置，复制里面的提示词让 Agent 自己写配置。
-
-### 用一句话驱动（推荐用法）
-
-推荐的用法不是在网页里点按钮，而是**直接对你的 Agent 说一句话**，让它端到端把活干完：
-
-> “采集猎聘北京的 AI 应用工程师岗位，评估前 10 个并生成报告。”
-
-Agent 会自己：建工作目录（`node scripts/init-workspace.mjs`）→ 跑采集脚本 → 按 `modes/` 里的指令评估 → 把报告写进 `reports/`、投递跟踪写进 `batch/tracker-additions/`。
-
-**网页此时只是看板**：打开 `http://localhost:5173` 看 Agent 写出的结果（Dashboard、报告、Pipeline、投递、面试准备），页面通过后端 `/api/data/*` 只读展示、实时刷新。所有写操作都由 Agent 完成，所以用什么浏览器看都行。
-
-只想建工作目录（不装依赖、不启动）时，可单独运行 `npm run init`。
-
-## 本地服务
-
-启动后会有两个地址：
-
-```text
-后端：http://127.0.0.1:3200
-前端：http://localhost:5173
-```
-
-如果启动失败，先跑：
-
-```bash
-npm run doctor
-```
-
-它会检查 Node.js、npm、Chrome、依赖目录、端口和个人配置文件。
 
 ## 采集岗位前要知道
 
@@ -226,16 +133,6 @@ docs/              详细文档
 ## 许可证
 
 本项目使用 MIT 许可证。许可证可以理解成“别人能怎样使用这份代码的规则”。完整内容见 `LICENSE`。
-
-## 现在还不是什么
-
-职程不是云端招聘平台。
-
-不是自动投递机器人。
-
-也不是“装上就能帮你找到工作”的黑盒工具。
-
-它更像一个本地工作台：把你已经在做的求职动作整理好，再把适合交给 AI 的部分交出去。
 
 
 ## 免责声明
