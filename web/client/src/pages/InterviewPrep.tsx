@@ -29,7 +29,7 @@ const MODULES: Array<{ key: ModuleKey; title: string; description: string; headi
   { key: 'glossary', title: '名词解释', description: '梳理岗位术语、用途、接话思路与易错点', heading: /模块\s*2|名词解释|术语/ },
   { key: 'simulate', title: '任务模拟', description: '拆解典型任务并按步骤完成实战演练', heading: /任务模拟/ },
   { key: 'roleplay', title: '角色扮演', description: '模拟领导、同事与客户的真实追问', heading: /角色扮演/ },
-  { key: 'portfolio', title: '小作品框架', description: '输出贴合岗位的小作品规格与实现思路', heading: /模块\s*3|小作品|作品框架/ },
+  { key: 'portfolio', title: '小作品框架', description: '输出贴合岗位的小作品规格与实现思路', heading: /模块\s*5|小作品|作品框架/ },
 ];
 
 const tagColors = ['processing', 'success', 'warning', 'purple', 'cyan', 'magenta'] as const;
