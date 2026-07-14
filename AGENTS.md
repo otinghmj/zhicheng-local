@@ -39,24 +39,31 @@
 
 系统级安装可能需要用户授权/密码——遇到就提示用户确认后再继续。
 
-### 2. 一键初始化并启动
+### 2. 一键初始化并启动（后台常驻 + 等就绪）
 
-在项目根执行（**放后台运行**，它会常驻）：
-
-```bash
-npm start
-```
-
-首次会自动装前后端依赖、建工作目录（`data/ reports/ output/ ...` + `cv.md` 等个人文件模板）、写好 MCP 配置，并起后端 `3200` + 前端 `5173`。用以下命令确认后端就绪：
+`npm start` 会**一直运行不退出**（它同时起后端和前端），所以**必须放后台**，否则会阻塞你后面所有操作、看起来像卡死。首次还会装依赖（几分钟）。在项目根：
 
 ```bash
-curl -s http://localhost:3200/api/health
+# Unix/macOS：detached 后台启动，日志落到文件
+nohup npm start > /tmp/zhicheng-start.log 2>&1 &
 ```
 
-### 3. 采集前置（仅采集类任务需要）
+用你自己 Agent 的后台/detached 机制也行，**关键是别前台同步等它结束**。启动后**轮询等后端就绪**（首次装依赖较久，重试到通为止）：
 
-- 确认系统安装了 Chrome（缺了可装；采集用的调试实例由 `scrapers/shared/ensure-chrome.mjs` 处理）。
-- **提醒用户**：采集复用其 Chrome 登录态，需先在 Chrome 登录目标招聘网站（猎聘 / 51job）——这一步你替不了。
+```bash
+until curl -sf http://localhost:3200/api/health >/dev/null; do sleep 3; done
+```
+
+首次会自动装前后端依赖、建工作目录（`data/ reports/ output/ ...` + `cv.md` 等个人文件模板）、写好 MCP 配置，并起后端 `3200` + 前端 `5173`。若长时间不通，看 `/tmp/zhicheng-start.log` 排查（常见：端口被占、Node 版本过低）。
+
+### 3. 按任务补前置依赖
+
+只在要用到时装：
+
+- **采集（猎聘 / 51job）**：需要系统 Chrome。采集脚本会自动拉起一个**独立的调试 Chrome**（`--user-data-dir=chrome-boss-debug`，端口 9223，由 `scrapers/shared/ensure-chrome.mjs` 处理）——它**不是**用户日常那个 Chrome。
+  - **登录要在这个调试 Chrome 里做**：首次采集脚本会打开该调试窗口，请提醒用户**在弹出的这个窗口里**登录目标招聘网站（不是平时的 Chrome）。登录态存在 `chrome-boss-debug`，之后复用。这一步你替不了。
+- **51job 额外依赖 `opencli`**：前程无忧采集走它，先全局装：`npm i -g @jackwener/opencli`。猎聘不需要。
+- **PDF（`pdf` 模式）额外依赖 Playwright Chromium**：`generate-pdf.mjs` 要它；冷启动时若 Playwright 下载失败会被跳过，用到 PDF 前先 `npx playwright install chromium`。
 
 ### 4. 告知用户
 
@@ -76,14 +83,21 @@ node scripts/init-workspace.mjs        # 幂等：建 data/reports/output/... + 
 
 ### 1. 采集岗位
 
-用 **`job-scraper` 技能**（搜索职位 + 拉 JD 详情，覆盖猎聘 / 前程无忧），或直接跑脚本：
+**所有命令在项目根目录运行。** 两种方式二选一：
 
-```bash
-node scrapers/liepin/liepin-dom.mjs --query "AI应用工程师" --city 010 --max-pages 3
-node scrapers/51job/51job-opencli.mjs --query "质量工程师" --city 030200 --max-pages 3
-```
+- **Claude Code**：可用 `job-scraper` 技能（在 `.claude/skills/`，仅 Claude Code 识别）。
+- **任意 Agent（Codex / Cursor 等没有"技能"概念的）**：直接跑脚本：
 
-采集依赖用户本机 Chrome 登录态，Chrome 就绪由 `scrapers/shared/ensure-chrome.mjs` 处理；采集配置在 `portals.yml`，完整流程见 `modes/scan.md`。
+  ```bash
+  node scrapers/liepin/liepin-dom.mjs --query "AI应用工程师" --city 010 --max-pages 3
+  node scrapers/51job/51job-opencli.mjs --query "质量工程师" --city 010000 --max-pages 3
+  ```
+
+  脚本会**自动把结果写进 `data/pipeline.md`**（除非加 `--skip-pipeline`），看板据此展示，你不用自己写回。
+
+- **城市码**：`--city` 要的是**平台各自的城市码，不是城市名**。查 `scrapers/shared/city-codes.json`，或起服务后 `GET http://localhost:3200/api/config/cities`。例：北京 → 猎聘 `010`、51job `010000`。
+
+采集前置（调试 Chrome 登录、51job 的 `opencli`）见上文「从零冷启动 · 第 3 步」；采集配置在 `portals.yml`，完整流程见 `modes/scan.md`。
 
 ### 2. 评估岗位
 
@@ -94,7 +108,9 @@ node scrapers/51job/51job-opencli.mjs --query "质量工程师" --city 030200 --
 
 ### 3. 其它模式（按需）
 
-读对应 `modes/<mode>.md` 执行并写回：`pdf`（`node generate-pdf.mjs` → `output/`）、`apply`、`contacto`、`interview-prep` / `deep-prep-*`、`cv-deep-dive`、`pipeline` / `auto-pipeline`、`tracker`、`project` / `training`。完整允许列表见 `web/server/src/services/ai-task-runner.mjs` 的 `ALLOWED_MODES`。
+读对应 `modes/<mode>.md` 执行并写回：`pdf`（`node generate-pdf.mjs` → `output/`，**需先 `npx playwright install chromium`**）、`apply`、`contacto`、`interview-prep` / `deep-prep-*`、`cv-deep-dive`、`pipeline` / `auto-pipeline`、`tracker`、`project` / `training`。完整允许列表见 `web/server/src/services/ai-task-runner.mjs` 的 `ALLOWED_MODES`。
+
+> `modes/*.md` 里有中/英/西语混排，按其中的指令执行即可，别被语言绊住。
 
 ### 4. 让用户看结果
 
@@ -122,6 +138,10 @@ npm start        # 首次自动初始化；前端 5173 / 后端 3200
 
 ## 排查
 
-- 看板显示"暂无数据"：确认 `npm start` 已起、工作目录里有你写的文件。
-- 采集报错：多为 Chrome 未登录目标平台；先让用户在 Chrome 登录，再重试。
-- 网页任务路径 `claim_task` 一直 empty：说明用户没从网页下发任务，正常——直驱路径不需要它。
+- **`npm start` 卡住不返回**：正常——它是常驻进程，必须后台运行（见「从零冷启动 · 第 2 步」），然后轮询 `/api/health` 等就绪，别前台同步等它。
+- **`opencli: command not found`**（51job 采集）：`npm i -g @jackwener/opencli`。
+- **PDF 报 chromium/executable 不存在**：`npx playwright install chromium`。
+- **端口 3200 / 5173 被占**：先停占用进程，或用 `SERVER_PORT` 改后端端口后重启。
+- **采集提示"未登录"但用户说已登录**：登录要在脚本拉起的**调试 Chrome**（`chrome-boss-debug`）里做，不是日常 Chrome。
+- **看板显示"暂无数据"**：确认 `npm start` 已起、工作目录里有你写的文件（`data/`、`reports/`）。
+- **网页任务路径 `claim_task` 一直 empty**：说明用户没从网页下发任务，正常——直驱路径不需要它。
