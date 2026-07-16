@@ -40,7 +40,7 @@
 
 都欢迎加我！
 
-<img width="600" height="764" alt="2d87b7f04c172273bb3d067d9ef9c104" src="https://github.com/user-attachments/assets/1f636f03-fcac-4b10-9f28-862649a6c094" />
+<img width="400" height="509" alt="2d87b7f04c172273bb3d067d9ef9c104" src="https://github.com/user-attachments/assets/1f636f03-fcac-4b10-9f28-862649a6c094" />
 
 
 ## 如果项目对你有帮助？欢迎能请杯咖啡犒劳一下
